@@ -15,7 +15,16 @@
 .alley-frame.image-only .screen-label{visibility:hidden}
 .alley-frame #dialogue{white-space:pre-line}
 .alley-frame.reading .caption{position:relative;inset:auto;padding:16px 20px;text-shadow:none}
+/* Даша: всё фото, включая лицо и газету, остаётся внутри кадра при приближении. */
+.dasha-frame .visual{display:flex;align-items:center;justify-content:center;isolation:isolate}
+.dasha-frame .visual:before{content:"";position:absolute;inset:-36px;z-index:-1;background:url('assets/Газетчица Даша у двери бара.png') center/cover no-repeat;filter:blur(24px) brightness(.8);pointer-events:none}
+.dasha-frame img{width:auto;max-width:100%;object-fit:contain;transform-origin:center;position:relative;will-change:transform}
+.dasha-frame .visual:after{display:none}
+.dasha-frame .caption{position:relative;inset:auto;padding:16px 20px;min-height:150px;text-shadow:none}
+.dasha-frame #dialogue{white-space:pre-line}
 @media(max-width:600px){
+  .dasha-frame .visual{aspect-ratio:auto}
+  .dasha-frame img{width:100%;height:auto}
   .alley-frame .visual{aspect-ratio:auto}
   .alley-frame img{width:100%;height:auto}
   .alley-frame .visual:after{display:none}

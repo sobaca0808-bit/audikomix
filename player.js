@@ -26,7 +26,22 @@ const frames = [
     zoom: true,
     audio: { voice: null, music: null, effects: [] }
   },
-  { image: 'assets/frame-3.svg', alt: 'Кочан капусты в открытом чемодане', speaker: 'ЛУИ', text: '— Конечно. А вот с помидорами вышла заминка…', duration: 6000, audio: { voice: null, music: null, effects: [] } }
+  {
+    image: 'assets/Газетчица Даша у двери бара.png',
+    alt: 'Газетчица Даша у двери бара с газетой «Переулок» в протянутой руке',
+    speaker: 'ДАША',
+    duration: 12000,
+    layout: 'dasha',
+    phrases: [
+      { text: 'Свежий „Переулок“!', start: 0, typing: 1200, end: 2500 },
+      { text: 'Дерзкое ограбление банка!', start: 2700, typing: 1500, end: 5200 },
+      { text: 'Главный подозреваемый — на первой полосе!', start: 5400, typing: 2200, end: 9200 },
+      { text: 'Газеты, господа, газеты!', start: 9400, typing: 1200, end: 12000 }
+    ],
+    holdLastPhrase: true,
+    zoom: { start: 0.9, delta: 0.1 },
+    audio: { voice: null, music: null, effects: [] }
+  }
 ];
 let current = 0;
 let mode = 'cinema';
@@ -50,7 +65,8 @@ function sceneCaption(frame, reading) {
       const text = frame.phrases.map(phrase => phrase.text).join('\n\n');
       return { visible: true, text, accessibleText: text };
     }
-    const phrase = frame.phrases.find(item => elapsed >= item.start && elapsed < item.end);
+    const phrase = frame.phrases.find(item => elapsed >= item.start && elapsed < item.end)
+      || (frame.holdLastPhrase && elapsed >= frame.duration ? frame.phrases.at(-1) : null);
     if (!phrase) return { visible: false, text: '', accessibleText: '' };
     const fraction = Math.max(0, Math.min(1, (elapsed - phrase.start) / phrase.typing));
     return {
@@ -59,7 +75,7 @@ function sceneCaption(frame, reading) {
       accessibleText: phrase.text
     };
   }
-  // Прежний тайминг одиночной реплики второго и третьего кадров.
+  // Прежний тайминг одиночной реплики второго кадра.
   const visible = reading || !frame.textDelay || elapsed >= frame.textDelay;
   const fraction = reading || !frame.textDuration ? 1 : Math.max(0, Math.min(1, (elapsed - frame.textDelay) / frame.textDuration));
   const text = visible ? frame.text.slice(0, Math.ceil(frame.text.length * fraction)) : '';
@@ -70,7 +86,7 @@ function renderScene() {
   const frame = frames[current];
   const reading = mode === 'comic';
   const { visible, text, accessibleText } = sceneCaption(frame, reading);
-  screen.classList.toggle('image-only', Boolean(frame.phrases && !reading && elapsed < 1000));
+  screen.classList.toggle('image-only', Boolean(frame.phrases && frame.layout !== 'dasha' && !reading && elapsed < 1000));
   caption.classList.toggle('is-empty', !visible);
   const speaker = visible ? frame.speaker : '';
   if (element('speaker').textContent !== speaker) element('speaker').textContent = speaker;
@@ -116,23 +132,28 @@ function scheduleNext() {
   timer = requestAnimationFrame(tick);
 }
 
+function atEnd() {
+  return current === frames.length - 1 && elapsed >= frames[current].duration;
+}
+
 function render() {
   const frame = frames[current];
   if (element('frame').getAttribute('src') !== frame.image) element('frame').src = frame.image;
   element('frame').alt = frame.alt;
   screen.classList.toggle('photo-frame', frame.zoom === true);
-  screen.classList.toggle('alley-frame', Boolean(frame.phrases));
+  screen.classList.toggle('alley-frame', Boolean(frame.phrases) && frame.layout !== 'dasha');
+  screen.classList.toggle('dasha-frame', frame.layout === 'dasha');
   screen.classList.toggle('reading', mode === 'comic');
   renderScene();
   element('counter').textContent = `КАДР ${current + 1} / ${frames.length}`;
   element('back').disabled = current === 0;
   element('next').disabled = current === frames.length - 1;
-  element('start').textContent = playing ? 'Пауза Ⅱ' : current === frames.length - 1 ? 'Сначала ↻' : current === 0 ? 'Начать ▶' : 'Продолжить ▶';
+  element('start').textContent = playing ? 'Пауза Ⅱ' : atEnd() ? 'Сначала ↻' : current === 0 ? 'Начать ▶' : 'Продолжить ▶';
   element('start').hidden = mode === 'comic';
   element('cinema').setAttribute('aria-pressed', String(mode === 'cinema'));
   element('comic').setAttribute('aria-pressed', String(mode === 'comic'));
-  element('status').textContent = mode === 'comic' ? 'Ручное переключение' : playing ? 'Идёт показ' : current === frames.length - 1 ? 'Конец демонстрации' : 'Показ остановлен';
-  element('hint').textContent = mode === 'cinema' ? 'В режиме «Кино»: первый кадр — 16 секунд, второй — 10, третий — 6.' : 'В режиме «Комикс» переключайте кадры кнопками «Назад» и «Вперёд».';
+  element('status').textContent = mode === 'comic' ? 'Ручное переключение' : playing ? 'Идёт показ' : atEnd() ? 'Конец демонстрации' : 'Показ остановлен';
+  element('hint').textContent = mode === 'cinema' ? 'В режиме «Кино»: первый кадр — 16 секунд, второй — 10, третий — 12.' : 'В режиме «Комикс» переключайте кадры кнопками «Назад» и «Вперёд».';
   document.querySelectorAll('.progress span').forEach((bar, index) => bar.classList.toggle('seen', index <= current));
 }
 
@@ -157,7 +178,7 @@ element('start').addEventListener('click', () => {
     playing = false;
     stopTimer();
   } else {
-    if (current === frames.length - 1) {
+    if (atEnd()) {
       current = 0;
       elapsed = 0;
     }
