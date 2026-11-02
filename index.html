@@ -13,12 +13,12 @@
     <section class="intro"><p class="eyebrow">ГАНГСТЕРСКАЯ КОМЕДИЯ · 1930-е</p><h1>Переулок<span>.</span></h1><p>Большие дела начинаются в маленьких переулках.</p></section>
     <section class="player" aria-label="Плеер истории Переулок">
       <div class="toolbar"><span>ИСТОРИЯ 01 <span class="muted">/ ДЕМОНСТРАЦИЯ</span></span><div class="modes" role="group" aria-label="Режим просмотра"><button id="cinema" aria-pressed="true">Кино</button><button id="comic" aria-pressed="false">Комикс</button></div></div>
-      <div class="screen"><img id="frame" src="assets/frame-1.svg" alt="Ночной переулок под светом фонаря"><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div><div class="caption" aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue"></p></div></div>
+      <div class="screen"><div class="visual"><img id="frame" src="assets/frame-1.svg" alt="Ночной переулок под светом фонаря"><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div></div><div class="caption" aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue" aria-hidden="true"></p><p id="accessible-dialogue" class="sr-only"></p></div></div>
       <div class="progress" aria-hidden="true"><span></span><span></span><span></span></div>
       <div class="controls"><button id="back" aria-label="Предыдущий кадр">← Назад</button><button id="start" class="primary">Начать ▶</button><button id="next" aria-label="Следующий кадр">Вперёд →</button></div>
       <div class="details"><span id="counter"></span><span id="status" role="status"></span></div>
     </section>
-    <footer><p id="hint">В режиме «Кино» кадры меняются каждые 6 секунд после нажатия «Начать».</p><p>Демонстрационные иллюстрации · Озвучка, музыка и эффекты появятся позже</p></footer>
+    <footer><p id="hint">В режиме «Кино» первый и третий кадры длятся 6 секунд, второй — 10 секунд.</p><p>Озвучка, музыка и эффекты появятся позже</p></footer>
   </main>
 </body>
 </html>
