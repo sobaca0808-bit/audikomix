@@ -45,10 +45,10 @@ function renderScene() {
   const accessibleText = visible ? frame.text : '';
   if (element('accessible-dialogue').textContent !== accessibleText) element('accessible-dialogue').textContent = accessibleText;
   if (frame.zoom && !reading && !reducedMotion.matches) {
-    // Приближение от 96% до 100% сохраняет всё фото даже на узком экране.
+    // Приближение 80–100% на общей шкале времени: пауза замораживает и движение.
     const progress = Math.min(1, elapsed / frame.duration);
     const eased = progress * progress * (3 - 2 * progress);
-    element('frame').style.transform = `scale(${0.96 + 0.04 * eased})`;
+    element('frame').style.transform = `scale(${0.8 + 0.2 * eased})`;
   } else {
     element('frame').style.transform = '';
   }
