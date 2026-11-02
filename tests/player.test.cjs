@@ -26,6 +26,11 @@ function player({ reducedMotion = false } = {}) {
     };
   }
   const ids = Object.fromEntries(['frame', 'speaker', 'dialogue', 'accessible-dialogue', 'counter', 'back', 'next', 'start', 'cinema', 'comic', 'status', 'hint'].map(id => [id, makeElement()]));
+  const transforms = [];
+  Object.defineProperty(ids.frame.style, 'transform', {
+    get: () => transforms.at(-1) || '',
+    set: value => transforms.push(value)
+  });
   const screen = makeElement();
   const caption = makeElement();
   const bars = Array.from({ length: 3 }, makeElement);
@@ -42,7 +47,7 @@ function player({ reducedMotion = false } = {}) {
     cancelAnimationFrame: id => pending.delete(id)
   });
   return {
-    ids, screen, caption, bars, preference,
+    ids, screen, caption, bars, preference, transforms,
     click(id) { if (!ids[id].disabled) ids[id].handlers.click(); },
     advance(ms) {
       now += ms;
@@ -153,7 +158,7 @@ test('Переходы сбрасывают сцену, не создают ду
   p.preference.matches = false;
   p.preference.change();
   const scale = Number(p.ids.frame.style.transform.match(/[\d.]+/)[0]);
-  assert.ok(scale > 0.96 && scale < 1);
+  assert.ok(scale > 0.8 && scale < 1);
   p.click('back');
   p.click('next');
   assert.equal(p.ids.dialogue.textContent, '');
@@ -162,4 +167,32 @@ test('Переходы сбрасывают сцену, не создают ду
   assert.equal(p.ids.counter.textContent, 'КАДР 2 / 3');
   p.advance(1);
   assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
+});
+
+test('Приближение 80–100% плавно растёт за 10 секунд и не работает в Комиксе', () => {
+  const p = player();
+  p.click('next');
+  assert.equal(p.ids.frame.style.transform, 'scale(0.8)');
+  p.click('start');
+  const scales = [0.8];
+  for (let second = 1; second <= 9; second += 1) {
+    p.advance(1000);
+    const scale = Number(p.ids.frame.style.transform.match(/[\d.]+/)[0]);
+    assert.ok(scale > scales.at(-1) && scale < 1);
+    scales.push(scale);
+  }
+  assert.equal(scales[5], 0.9);
+  // Плавное начало и завершение: шаг масштаба по краям меньше, чем в середине.
+  assert.ok(scales[1] - scales[0] < scales[5] - scales[4]);
+  assert.ok(scales[9] - scales[8] < scales[5] - scales[4]);
+  p.advance(1000);
+  assert.equal(p.transforms.at(-2), 'scale(1)');
+  assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
+  p.click('back');
+  assert.equal(p.ids.frame.style.transform, 'scale(0.8)');
+  p.click('comic');
+  assert.equal(p.ids.frame.style.transform, '');
+  p.advance(20000);
+  assert.equal(p.ids.frame.style.transform, '');
+  assert.equal(p.ids.counter.textContent, 'КАДР 2 / 3');
 });
