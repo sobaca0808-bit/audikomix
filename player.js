@@ -1,7 +1,20 @@
 // Здесь хранится история: картинка, подпись и длительность каждого кадра.
 // Поля audio оставлены для будущих файлов озвучки, музыки и эффектов.
 const frames = [
-  { image: 'assets/frame-1.svg', alt: 'Ночной переулок под светом фонаря', speaker: 'РАССКАЗЧИК', text: 'В этом городе даже тишина работала на мафию.', duration: 6000, audio: { voice: null, music: null, effects: [] } },
+  {
+    image: 'assets/frame-01-alley.webp',
+    alt: 'Ночной переулок с фонарями и входом в бар',
+    speaker: 'РАССКАЗЧИК',
+    duration: 16000,
+    phrases: [
+      { text: '1932 год… В этом городе даже тишина работала на мафию.', start: 1000, typing: 2000, end: 4250 },
+      { text: 'У каждого здесь были свои секреты.', start: 4500, typing: 1500, end: 7250 },
+      { text: 'А дурные новости приходили без приглашения…', start: 7500, typing: 2000, end: 10750 },
+      { text: 'И что особенно обидно — за них ещё приходилось платить.', start: 11000, typing: 2500, end: 16000 }
+    ],
+    zoom: { start: 0.9, delta: 0.1 },
+    audio: { voice: null, music: null, effects: [] }
+  },
   {
     image: 'assets/frame-02-bar.webp',
     alt: 'Мужчина с сигаретой за столиком в джаз-баре тридцатых годов',
@@ -31,24 +44,46 @@ function stopTimer() {
   timer = null;
 }
 
-function renderScene() {
-  const frame = frames[current];
-  const reading = mode === 'comic';
+function sceneCaption(frame, reading) {
+  if (frame.phrases) {
+    if (reading) {
+      const text = frame.phrases.map(phrase => phrase.text).join('\n\n');
+      return { visible: true, text, accessibleText: text };
+    }
+    const phrase = frame.phrases.find(item => elapsed >= item.start && elapsed < item.end);
+    if (!phrase) return { visible: false, text: '', accessibleText: '' };
+    const fraction = Math.max(0, Math.min(1, (elapsed - phrase.start) / phrase.typing));
+    return {
+      visible: true,
+      text: phrase.text.slice(0, Math.ceil(phrase.text.length * fraction)),
+      accessibleText: phrase.text
+    };
+  }
+  // Прежний тайминг одиночной реплики второго и третьего кадров.
   const visible = reading || !frame.textDelay || elapsed >= frame.textDelay;
   const fraction = reading || !frame.textDuration ? 1 : Math.max(0, Math.min(1, (elapsed - frame.textDelay) / frame.textDuration));
   const text = visible ? frame.text.slice(0, Math.ceil(frame.text.length * fraction)) : '';
+  return { visible, text, accessibleText: visible ? frame.text : '' };
+}
+
+function renderScene() {
+  const frame = frames[current];
+  const reading = mode === 'comic';
+  const { visible, text, accessibleText } = sceneCaption(frame, reading);
+  screen.classList.toggle('image-only', Boolean(frame.phrases && !reading && elapsed < 1000));
   caption.classList.toggle('is-empty', !visible);
   const speaker = visible ? frame.speaker : '';
   if (element('speaker').textContent !== speaker) element('speaker').textContent = speaker;
   if (element('dialogue').textContent !== text) element('dialogue').textContent = text;
   // Скринридер получает целую реплику один раз, без объявления каждой буквы.
-  const accessibleText = visible ? frame.text : '';
   if (element('accessible-dialogue').textContent !== accessibleText) element('accessible-dialogue').textContent = accessibleText;
   if (frame.zoom && !reading && !reducedMotion.matches) {
-    // Приближение 80–100% на общей шкале времени: пауза замораживает и движение.
+    // Одна шкала времени для текста и движения. У второго кадра прежние 80–100%.
     const progress = Math.min(1, elapsed / frame.duration);
     const eased = progress * progress * (3 - 2 * progress);
-    element('frame').style.transform = `scale(${0.8 + 0.2 * eased})`;
+    const start = frame.zoom.start ?? 0.8;
+    const delta = frame.zoom.delta ?? 0.2;
+    element('frame').style.transform = `scale(${start + delta * eased})`;
   } else {
     element('frame').style.transform = '';
   }
@@ -85,7 +120,9 @@ function render() {
   const frame = frames[current];
   if (element('frame').getAttribute('src') !== frame.image) element('frame').src = frame.image;
   element('frame').alt = frame.alt;
-  screen.classList.toggle('photo-frame', Boolean(frame.zoom));
+  screen.classList.toggle('photo-frame', frame.zoom === true);
+  screen.classList.toggle('alley-frame', Boolean(frame.phrases));
+  screen.classList.toggle('reading', mode === 'comic');
   renderScene();
   element('counter').textContent = `КАДР ${current + 1} / ${frames.length}`;
   element('back').disabled = current === 0;
@@ -95,7 +132,7 @@ function render() {
   element('cinema').setAttribute('aria-pressed', String(mode === 'cinema'));
   element('comic').setAttribute('aria-pressed', String(mode === 'comic'));
   element('status').textContent = mode === 'comic' ? 'Ручное переключение' : playing ? 'Идёт показ' : current === frames.length - 1 ? 'Конец демонстрации' : 'Показ остановлен';
-  element('hint').textContent = mode === 'cinema' ? 'В режиме «Кино» первый и третий кадры длятся 6 секунд, второй — 10 секунд.' : 'В режиме «Комикс» переключайте кадры кнопками «Назад» и «Вперёд».';
+  element('hint').textContent = mode === 'cinema' ? 'В режиме «Кино»: первый кадр — 16 секунд, второй — 10, третий — 6.' : 'В режиме «Комикс» переключайте кадры кнопками «Назад» и «Вперёд».';
   document.querySelectorAll('.progress span').forEach((bar, index) => bar.classList.toggle('seen', index <= current));
 }
 

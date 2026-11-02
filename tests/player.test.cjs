@@ -4,6 +4,12 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../player.js'), 'utf8');
 const narration = 'Люблю тихие вечера. Особенно когда никто не пытается меня убить';
+const alleyPhrases = [
+  '1932 год… В этом городе даже тишина работала на мафию.',
+  'У каждого здесь были свои секреты.',
+  'А дурные новости приходили без приглашения…',
+  'И что особенно обидно — за них ещё приходилось платить.'
+];
 
 // Управляемые часы и DOM проверяют поведение плеера без браузерных зависимостей.
 function player({ reducedMotion = false } = {}) {
@@ -59,13 +65,13 @@ function player({ reducedMotion = false } = {}) {
   };
 }
 
-test('Кино: 6 / 10 / 6 секунд, две секунды без текста, постепенная реплика', () => {
+test('Кино: 16 / 10 / 6 секунд, второй кадр сохраняет задержку и реплику', () => {
   const p = player();
-  assert.equal(p.ids.frame.src, 'assets/frame-1.svg');
-  assert.equal(p.ids.dialogue.textContent, 'В этом городе даже тишина работала на мафию.');
+  assert.equal(p.ids.frame.src, 'assets/frame-01-alley.webp');
+  assert.equal(p.ids.dialogue.textContent, '');
   assert.equal(p.ids.back.disabled, true);
   p.click('start');
-  p.advance(5999);
+  p.advance(15999);
   assert.equal(p.ids.counter.textContent, 'КАДР 1 / 3');
   p.advance(1);
   assert.equal(p.ids.frame.src, 'assets/frame-02-bar.webp');
@@ -95,6 +101,111 @@ test('Кино: 6 / 10 / 6 секунд, две секунды без текст
   p.click('start');
   assert.equal(p.ids.counter.textContent, 'КАДР 1 / 3');
   assert.equal(p.scheduled, 1);
+});
+
+test('Первый кадр: одна секунда без текста, четыре фразы и паузы между ними', () => {
+  const p = player();
+  assert.equal(p.screen.classList.contains('image-only'), true);
+  assert.equal(p.screen.classList.contains('photo-frame'), false);
+  assert.equal(p.screen.classList.contains('alley-frame'), true);
+  p.click('start');
+  p.advance(999);
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.speaker.textContent, '');
+  assert.equal(p.ids['accessible-dialogue'].textContent, '');
+  p.advance(1);
+  assert.equal(p.screen.classList.contains('image-only'), false);
+  assert.equal(p.ids.speaker.textContent, 'РАССКАЗЧИК');
+  let now = 1000;
+  const intervals = [[1000, 3000, 4250], [4500, 6000, 7250], [7500, 9500, 10750], [11000, 13500, 16000]];
+  for (let index = 0; index < intervals.length; index += 1) {
+    const [start, complete, end] = intervals[index];
+    p.advance(start + 1 - now);
+    now = start + 1;
+    const partial = p.ids.dialogue.textContent;
+    assert.ok(partial.length > 0 && partial.length < alleyPhrases[index].length);
+    assert.ok(alleyPhrases[index].startsWith(partial));
+    assert.equal(p.ids['accessible-dialogue'].textContent, alleyPhrases[index]);
+    p.advance(complete - now);
+    now = complete;
+    assert.equal(p.ids.dialogue.textContent, alleyPhrases[index]);
+    p.advance(end - 1 - now);
+    now = end - 1;
+    assert.equal(p.ids.dialogue.textContent, alleyPhrases[index]);
+    p.advance(1);
+    now = end;
+    assert.equal(p.ids.dialogue.textContent, '');
+    assert.equal(p.ids.speaker.textContent, '');
+    if (index < 3) {
+      assert.equal(p.caption.classList.contains('is-empty'), true);
+      assert.equal(p.ids.counter.textContent, 'КАДР 1 / 3');
+    }
+  }
+  assert.equal(p.ids.counter.textContent, 'КАДР 2 / 3');
+  assert.equal(p.ids.frame.style.transform, 'scale(0.8)');
+});
+
+test('Первый кадр: пауза сохраняет начальную задержку, набор и межфразовый интервал', () => {
+  const p = player();
+  p.click('start');
+  p.advance(500);
+  p.click('start');
+  const openingScale = p.ids.frame.style.transform;
+  p.advance(20000);
+  assert.equal(p.screen.classList.contains('image-only'), true);
+  assert.equal(p.ids.frame.style.transform, openingScale);
+  p.click('start');
+  p.advance(499);
+  assert.equal(p.ids.dialogue.textContent, '');
+  p.advance(501);
+  p.click('start');
+  const text = p.ids.dialogue.textContent;
+  const scale = p.ids.frame.style.transform;
+  p.advance(20000);
+  assert.equal(p.ids.dialogue.textContent, text);
+  assert.equal(p.ids.frame.style.transform, scale);
+  p.click('start');
+  p.advance(2750);
+  assert.equal(p.ids.dialogue.textContent, '');
+  p.click('start');
+  p.advance(20000);
+  assert.equal(p.ids.dialogue.textContent, '');
+  p.click('start');
+  p.advance(251);
+  assert.ok(alleyPhrases[1].startsWith(p.ids.dialogue.textContent));
+  assert.ok(p.ids.dialogue.textContent.length > 0);
+});
+
+test('Первый кадр: приближение 90–100% за 16 секунд, весь текст в Комиксе без ожидания', () => {
+  const p = player();
+  assert.equal(p.ids.frame.style.transform, 'scale(0.9)');
+  p.click('start');
+  p.advance(8000);
+  assert.ok(Math.abs(Number(p.ids.frame.style.transform.match(/[\d.]+/)[0]) - 0.95) < 1e-9);
+  p.advance(7999);
+  assert.equal(p.ids.counter.textContent, 'КАДР 1 / 3');
+  assert.equal(p.ids.dialogue.textContent, alleyPhrases[3]);
+  p.advance(1);
+  assert.equal(p.transforms.at(-2), 'scale(1)');
+  p.click('back');
+  assert.equal(p.ids.frame.style.transform, 'scale(0.9)');
+  assert.equal(p.ids.dialogue.textContent, '');
+  p.click('comic');
+  assert.equal(p.ids.dialogue.textContent, alleyPhrases.join('\n\n'));
+  assert.equal(p.ids['accessible-dialogue'].textContent, alleyPhrases.join('\n\n'));
+  assert.equal(p.ids.frame.style.transform, '');
+  assert.equal(p.screen.classList.contains('image-only'), false);
+  p.advance(30000);
+  assert.equal(p.ids.counter.textContent, 'КАДР 1 / 3');
+  assert.equal(p.ids.dialogue.textContent, alleyPhrases.join('\n\n'));
+  p.click('cinema');
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.frame.style.transform, 'scale(0.9)');
+  const reduced = player({ reducedMotion: true });
+  reduced.click('start');
+  reduced.advance(8000);
+  assert.equal(reduced.ids.frame.style.transform, '');
+  assert.ok(reduced.ids.dialogue.textContent.length > 0);
 });
 
 test('Пауза сохраняет задержку, набранный текст, приближение и оставшееся время', () => {
