@@ -10,6 +10,12 @@ const alleyPhrases = [
   'А дурные новости приходили без приглашения…',
   'И что особенно обидно — за них ещё приходилось платить.'
 ];
+const dashaPhrases = [
+  'Свежий „Переулок“!',
+  'Дерзкое ограбление банка!',
+  'Главный подозреваемый — на первой полосе!',
+  'Газеты, господа, газеты!'
+];
 
 // Управляемые часы и DOM проверяют поведение плеера без браузерных зависимостей.
 function player({ reducedMotion = false } = {}) {
@@ -65,7 +71,7 @@ function player({ reducedMotion = false } = {}) {
   };
 }
 
-test('Кино: 16 / 10 / 6 секунд, второй кадр сохраняет задержку и реплику', () => {
+test('Кино: 16 / 10 / 12 секунд, второй кадр сохраняет задержку и реплику', () => {
   const p = player();
   assert.equal(p.ids.frame.src, 'assets/frame-01-alley.webp');
   assert.equal(p.ids.dialogue.textContent, '');
@@ -91,11 +97,14 @@ test('Кино: 16 / 10 / 6 секунд, второй кадр сохраняе
   assert.equal(p.ids.counter.textContent, 'КАДР 2 / 3');
   p.advance(1);
   assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
-  assert.equal(p.ids.frame.src, 'assets/frame-3.svg');
-  assert.equal(p.ids.dialogue.textContent, '— Конечно. А вот с помидорами вышла заминка…');
-  assert.equal(p.ids.frame.style.transform, '');
-  p.advance(6000);
+  assert.equal(p.ids.frame.src, 'assets/Газетчица Даша у двери бара.png');
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.frame.style.transform, 'scale(0.9)');
+  p.advance(11999);
+  assert.equal(p.ids.status.textContent, 'Идёт показ');
+  p.advance(1);
   assert.equal(p.ids.status.textContent, 'Конец демонстрации');
+  assert.equal(p.ids.dialogue.textContent, dashaPhrases[3]);
   assert.equal(p.scheduled, 0);
   assert.equal(p.ids.next.disabled, true);
   p.click('start');
@@ -306,4 +315,105 @@ test('Приближение 80–100% плавно растёт за 10 сек�
   p.advance(20000);
   assert.equal(p.ids.frame.style.transform, '');
   assert.equal(p.ids.counter.textContent, 'КАДР 2 / 3');
+});
+
+test('Даша: ручной переход и запуск последнего кадра, четыре фразы за 12 секунд', () => {
+  const p = player();
+  p.click('next'); p.click('next');
+  assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
+  assert.equal(p.ids.next.disabled, true);
+  assert.equal(p.screen.classList.contains('dasha-frame'), true);
+  assert.equal(p.screen.classList.contains('alley-frame'), false);
+  assert.equal(p.screen.classList.contains('photo-frame'), false);
+  assert.equal(p.ids.speaker.textContent, 'ДАША');
+  assert.equal(p.ids.start.textContent, 'Продолжить ▶');
+  assert.equal(p.ids.status.textContent, 'Показ остановлен');
+  assert.ok(p.ids.hint.textContent.includes('третий — 12'));
+  p.click('start');
+  assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
+  let now = 0;
+  const intervals = [[0, 1200, 2500], [2700, 4200, 5200], [5400, 7600, 9200], [9400, 10600, 12000]];
+  for (let index = 0; index < intervals.length; index += 1) {
+    const [start, complete, end] = intervals[index];
+    p.advance(start + 1 - now);
+    now = start + 1;
+    const partial = p.ids.dialogue.textContent;
+    assert.ok(partial.length > 0 && partial.length < dashaPhrases[index].length);
+    assert.ok(dashaPhrases[index].startsWith(partial));
+    assert.equal(p.ids['accessible-dialogue'].textContent, dashaPhrases[index]);
+    p.advance(complete - now);
+    now = complete;
+    assert.equal(p.ids.dialogue.textContent, dashaPhrases[index]);
+    p.advance(end - now);
+    now = end;
+    if (index < 3) {
+      assert.equal(p.ids.dialogue.textContent, '');
+      assert.equal(p.caption.classList.contains('is-empty'), true);
+    }
+  }
+  assert.equal(p.ids.dialogue.textContent, dashaPhrases[3]);
+  assert.equal(p.ids.start.textContent, 'Сначала ↻');
+  assert.equal(p.ids.status.textContent, 'Конец демонстрации');
+  assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
+  assert.equal(p.bars.length, 3);
+  assert.equal(p.scheduled, 0);
+});
+
+test('Даша: пауза в промежутке и посреди реплики продолжает третий кадр с того же места', () => {
+  const p = player();
+  p.click('next'); p.click('next'); p.click('start');
+  p.advance(2500);
+  p.click('start');
+  const gapScale = p.ids.frame.style.transform;
+  p.advance(20000);
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.frame.style.transform, gapScale);
+  assert.equal(p.ids.start.textContent, 'Продолжить ▶');
+  p.click('start');
+  p.advance(201);
+  assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
+  assert.ok(p.ids.dialogue.textContent.length > 0);
+  p.advance(599);
+  p.click('start');
+  const text = p.ids.dialogue.textContent;
+  const scale = p.ids.frame.style.transform;
+  p.advance(20000);
+  assert.equal(p.ids.dialogue.textContent, text);
+  assert.equal(p.ids.frame.style.transform, scale);
+  p.click('start');
+  p.advance(8699);
+  assert.equal(p.ids.status.textContent, 'Идёт показ');
+  assert.equal(p.ids.dialogue.textContent, dashaPhrases[3]);
+  p.advance(1);
+  assert.equal(p.ids.status.textContent, 'Конец демонстрации');
+  p.advance(20000);
+  assert.equal(p.ids.dialogue.textContent, dashaPhrases[3]);
+  p.click('start');
+  assert.equal(p.ids.counter.textContent, 'КАДР 1 / 3');
+});
+
+test('Даша: весь текст в Комиксе, возврат в Кино, приближение 90–100% и reduced motion', () => {
+  const p = player();
+  p.click('comic'); p.click('next'); p.click('next');
+  assert.equal(p.ids.dialogue.textContent, dashaPhrases.join('\n\n'));
+  assert.equal(p.ids['accessible-dialogue'].textContent, p.ids.dialogue.textContent);
+  assert.equal(p.ids.start.hidden, true);
+  assert.equal(p.ids.frame.style.transform, '');
+  p.advance(30000);
+  assert.equal(p.ids.dialogue.textContent, dashaPhrases.join('\n\n'));
+  p.click('back');
+  assert.equal(p.ids.dialogue.textContent, narration);
+  p.click('next'); p.click('cinema'); p.click('start');
+  assert.equal(p.ids.counter.textContent, 'КАДР 3 / 3');
+  assert.equal(p.ids.frame.style.transform, 'scale(0.9)');
+  p.advance(6000);
+  assert.ok(Math.abs(Number(p.ids.frame.style.transform.match(/[\d.]+/)[0]) - .95) < 1e-9);
+  p.advance(6000);
+  assert.equal(p.ids.frame.style.transform, 'scale(1)');
+  assert.equal(p.ids.dialogue.textContent, dashaPhrases[3]);
+  const reduced = player({ reducedMotion: true });
+  reduced.click('next'); reduced.click('next'); reduced.click('start');
+  reduced.advance(1500);
+  assert.equal(reduced.ids.frame.style.transform, '');
+  assert.equal(reduced.ids.dialogue.textContent, dashaPhrases[0]);
 });
