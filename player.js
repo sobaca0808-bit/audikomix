@@ -8,6 +8,8 @@ let elapsed = 0;
 let startedAt = 0;
 let starting = false;
 let startVersion = 0;
+let imageVersion = 0;
+let imageAnimations = [];
 const element = id => document.getElementById(id);
 const screen = document.querySelector('.screen');
 const caption = document.querySelector('.caption');
@@ -127,9 +129,62 @@ function atEnd() {
   return current === frames.length - 1 && elapsed >= durationFor(frames[current]);
 }
 
+function clearImageTransition() {
+  imageAnimations.forEach(animation => animation.cancel());
+  imageAnimations = [];
+  element('frame').style.opacity = '1';
+  const previous = element('previous-frame');
+  if (previous) {
+    previous.hidden = true;
+    if (previous.replaceChildren) previous.replaceChildren();
+  }
+}
+
+function showFrameImage(frame) {
+  const image = element('frame');
+  if (image.getAttribute('src') === frame.image) return;
+  const version = ++imageVersion;
+  const previous = element('previous-frame');
+  const canFade = previous && image.animate && image.decode && !reducedMotion.matches;
+  const currentReady = canFade && image.complete && image.naturalWidth;
+  const snapshot = currentReady ? image.cloneNode(true)
+    : canFade && previous.firstElementChild ? previous.firstElementChild.cloneNode(true) : null;
+  if (snapshot) {
+    snapshot.removeAttribute('id');
+    snapshot.alt = '';
+    snapshot.style.opacity = '1';
+    if (currentReady) snapshot.style.transformOrigin = window.getComputedStyle(image).transformOrigin;
+  }
+  clearImageTransition();
+  if (snapshot) {
+    previous.replaceChildren(snapshot);
+    previous.hidden = false;
+  }
+  image.src = frame.image;
+  image.alt = frame.alt;
+  caption.scrollTop = 0;
+  if (!canFade) return;
+  image.style.opacity = '0';
+  image.decode().catch(() => {}).then(() => {
+    if (version !== imageVersion) return;
+    if (reducedMotion.matches) { clearImageTransition(); return; }
+    const options = { duration: 200, easing: 'ease-in-out', fill: 'forwards' };
+    const incoming = image.animate([{ opacity: 0 }, { opacity: 1 }], options);
+    imageAnimations = [incoming];
+    if (snapshot) {
+      const outgoing = previous.animate([{ opacity: 1 }, { opacity: 0 }], options);
+      outgoing.finished.catch(() => {});
+      imageAnimations.push(outgoing);
+    }
+    incoming.finished.then(() => {
+      if (version === imageVersion) clearImageTransition();
+    }).catch(() => {});
+  });
+}
+
 function render() {
   const frame = frames[current];
-  if (element('frame').getAttribute('src') !== frame.image) element('frame').src = frame.image;
+  showFrameImage(frame);
   element('frame').alt = frame.alt;
   screen.classList.toggle('photo-frame', frame.zoom === true);
   screen.classList.toggle('alley-frame', frame.layout === 'alley');
@@ -185,6 +240,7 @@ function setMode(value) {
   cancelStart();
   stopTimer();
   audio.stop();
+  caption.scrollTop = 0;
   render();
 }
 
@@ -234,5 +290,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) pausePlayback();
 });
 window.addEventListener('pagehide', pausePlayback);
-reducedMotion.addEventListener('change', renderScene);
+reducedMotion.addEventListener('change', () => {
+  if (reducedMotion.matches) { imageVersion += 1; clearImageTransition(); }
+  renderScene();
+});
 render();

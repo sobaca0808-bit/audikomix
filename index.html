@@ -19,12 +19,12 @@
     <section class="intro"><p class="eyebrow">ГАНГСТЕРСКАЯ КОМЕДИЯ · 1930-е</p><h1>Переулок<span>.</span></h1><p>Большие дела начинаются в маленьких переулках.</p></section>
     <section class="player" aria-label="Плеер истории Переулок">
       <div class="toolbar"><span>ИСТОРИЯ 01 <span class="muted">/ ДЕМОНСТРАЦИЯ</span></span><div class="modes" role="group" aria-label="Режим просмотра"><button id="cinema" aria-pressed="true">Кино</button><button id="comic" aria-pressed="false">Комикс</button></div></div>
-      <div class="screen alley-frame image-only"><div class="visual"><img id="frame" src="assets/frame-01-alley.webp" alt="Ночной переулок с фонарями и входом в бар"><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div></div><div class="caption" aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue" aria-hidden="true"></p><p id="accessible-dialogue" class="sr-only"></p></div></div>
+      <div class="screen alley-frame image-only"><div class="visual"><div id="previous-frame" class="image-layer" aria-hidden="true" hidden></div><div class="image-layer"><img id="frame" src="assets/frame-01-alley.webp" alt="Ночной переулок с фонарями и входом в бар"></div><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div></div><div class="caption" role="region" tabindex="0" aria-label="Субтитры. Длинный текст можно прокручивать." aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue" aria-hidden="true"></p><p id="accessible-dialogue" class="sr-only"></p></div></div>
       <div id="progress" class="progress" aria-hidden="true"></div>
       <div class="controls"><button id="back" aria-label="Предыдущий кадр">← Назад</button><button id="start" class="primary">Начать ▶</button><button id="next" aria-label="Следующий кадр">Вперёд →</button></div>
       <div class="details"><span id="counter"></span><span id="status" role="status"></span></div>
       <div class="audio-panel">
-        <p id="candidate-note" hidden>Изображение панорамы ждёт проверки автора.</p>
+        <p id="candidate-note" hidden>Панорама бара пока отсутствует. Здесь временный портрет.</p>
         <p id="audio-status" role="status">Звук будет проверен после нажатия «Начать». Запись голоса и фоновые звуки добавляются отдельно.</p>
         <details><summary>Громкость дорожек</summary><div class="volume-controls">
           <label>Голос <input id="volume-voice" type="range" min="0" max="1" step="0.01" value="1"></label>
