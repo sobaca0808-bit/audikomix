@@ -8,6 +8,9 @@
   <link rel="preload" href="assets/frame-01-alley.webp" as="image">
   <link rel="preload" href="assets/frame-02-bar.webp" as="image">
   <link rel="preload" href="assets/Газетчица Даша у двери бара.png" as="image">
+  <link rel="preload" href="assets/Дымный джаз-бар тридцатых годов.png" as="image">
+  <script src="scenes.js" defer></script>
+  <script src="audio-engine.js" defer></script>
   <script src="player.js" defer></script>
 </head>
 <body>
@@ -17,11 +20,21 @@
     <section class="player" aria-label="Плеер истории Переулок">
       <div class="toolbar"><span>ИСТОРИЯ 01 <span class="muted">/ ДЕМОНСТРАЦИЯ</span></span><div class="modes" role="group" aria-label="Режим просмотра"><button id="cinema" aria-pressed="true">Кино</button><button id="comic" aria-pressed="false">Комикс</button></div></div>
       <div class="screen alley-frame image-only"><div class="visual"><img id="frame" src="assets/frame-01-alley.webp" alt="Ночной переулок с фонарями и входом в бар"><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div></div><div class="caption" aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue" aria-hidden="true"></p><p id="accessible-dialogue" class="sr-only"></p></div></div>
-      <div class="progress" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div id="progress" class="progress" aria-hidden="true"></div>
       <div class="controls"><button id="back" aria-label="Предыдущий кадр">← Назад</button><button id="start" class="primary">Начать ▶</button><button id="next" aria-label="Следующий кадр">Вперёд →</button></div>
       <div class="details"><span id="counter"></span><span id="status" role="status"></span></div>
+      <div class="audio-panel">
+        <p id="candidate-note" hidden>Изображение панорамы ждёт проверки автора.</p>
+        <p id="audio-status" role="status">Звук будет проверен после нажатия «Начать». Запись голоса и фоновые звуки добавляются отдельно.</p>
+        <details><summary>Громкость дорожек</summary><div class="volume-controls">
+          <label>Голос <input id="volume-voice" type="range" min="0" max="1" step="0.01" value="1"></label>
+          <label>Атмосфера <input id="volume-ambience" type="range" min="0" max="1" step="0.01" value="0.35"></label>
+          <label>Музыка <input id="volume-music" type="range" min="0" max="1" step="0.01" value="0.2"></label>
+          <label>Эффекты <input id="volume-effects" type="range" min="0" max="1" step="0.01" value="0.3"></label>
+        </div></details>
+      </div>
     </section>
-    <footer><p id="hint">В режиме «Кино»: первый кадр — 16 секунд, второй — 10, третий — 12.</p><p>Озвучка, музыка и эффекты появятся позже</p></footer>
+    <footer><p id="hint"></p><p>Запись голоса и фоновые звуки добавляются отдельно · Изображение панорамы — кандидат для проверки</p></footer>
   </main>
 </body>
 </html>
