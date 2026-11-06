@@ -68,7 +68,7 @@ test('Четыре сцены: утверждённые оригиналы, те
   assert.equal(p.scenes[2].text, hero);
   assert.deepEqual(Array.from(p.scenes[3].phrases, item => item.text), dasha);
   assert.equal(p.scenes[0].image, 'assets/Ночной переулок у бара «Переулок».png');
-  assert.equal(p.scenes[2].image, 'assets/frame-02-bar.webp');
+  assert.equal(p.scenes[2].image, 'assets/a_cinematic_warm_toned_vintage_bar_room_portrait.png');
   assert.equal(p.scenes[3].image, 'assets/Газетчица у старого бара.png');
   assert.equal(p.scenes[1].candidate, true);
   assert.equal(p.scenes[1].audio.voice.src, 'assets/audio/Pereulok_voice_natural_v2.mp3');

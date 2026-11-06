@@ -30,3 +30,20 @@
 #audio-status{height:5.5rem;min-height:5.5rem;max-height:5.5rem;overflow-y:auto}
 #hint{height:4em;min-height:4em;overflow-y:auto}
 @media(max-width:600px){.visual{aspect-ratio:16/9}.controls{gap:6px;padding:20px 8px 16px}.caption{padding:16px 14px}.audio-panel{padding:12px}.volume-controls{grid-template-columns:1fr}}
+
+/* Коррекция применяется только к фото. Поля, субтитры и интерфейс сохраняют цвет. */
+#frame.grade-pending{visibility:hidden}
+.picture-panel{border-top:1px solid var(--line);padding:12px 22px 18px;font-size:12px;line-height:1.6;color:var(--muted)}
+.picture-panel summary{cursor:pointer;color:#eee9df;min-height:32px}
+.picture-panel p{max-width:65ch;margin:8px 0 16px}
+.look-options{display:flex;gap:6px;margin-bottom:18px}
+.look-options button{padding:8px 18px}
+.look-options [aria-pressed=true]{background:var(--gold);color:#171712;border-color:var(--gold)}
+.picture-controls{display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,2fr);gap:12px 24px;max-width:620px}
+.picture-controls label{display:flex;justify-content:space-between;gap:12px;color:#eee9df}
+.picture-controls output{font-variant-numeric:tabular-nums;color:var(--muted)}
+.picture-controls input{width:100%;min-width:0;accent-color:var(--gold);margin:0}
+.picture-controls input:disabled{opacity:.4}
+.picture-panel input:focus-visible,.picture-panel summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
+.picture-reset{margin-top:20px;padding:8px 12px;font-size:12px}
+@media(max-width:600px){.picture-panel{padding:12px}.picture-controls{grid-template-columns:minmax(0,1fr);gap:6px}.picture-controls input{margin-bottom:12px}.picture-reset{max-width:100%}}

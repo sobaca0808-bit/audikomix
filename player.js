@@ -15,6 +15,7 @@ const screen = document.querySelector('.screen');
 const caption = document.querySelector('.caption');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const audio = new window.AlleyAudio(story.audio, { onStatus: updateAudioStatus });
+const filmGrade = window.AlleyFilmGrade?.create({ document });
 const progress = element('progress');
 const bars = frames.map(() => {
   const bar = document.createElement('span');
@@ -185,6 +186,9 @@ function showFrameImage(frame) {
 function render() {
   const frame = frames[current];
   showFrameImage(frame);
+  // Снимок предыдущего кадра уже создан со своим профилем; новый получает свой.
+  filmGrade?.apply(element('frame'), frame.id);
+  element('frame').classList.toggle('grade-pending', false);
   element('frame').alt = frame.alt;
   screen.classList.toggle('photo-frame', frame.zoom === true);
   screen.classList.toggle('alley-frame', frame.layout === 'alley');
@@ -285,6 +289,41 @@ for (const [channel, volume] of Object.entries(story.audio.volumes)) {
   const input = element('volume-' + channel);
   input.value = String(volume);
   input.addEventListener('input', () => audio.setVolume(channel, Number(input.value)));
+}
+if (filmGrade) {
+  const pictureFields = ['brightness', 'contrast', 'saturation'];
+  const syncPictureControls = () => {
+    const settings = filmGrade.getSettings();
+    const original = settings.look === 'original';
+    element('look-original').setAttribute('aria-pressed', String(original));
+    element('look-cinema').setAttribute('aria-pressed', String(!original));
+    element('picture-look-name').textContent = original ? 'Оригинал' : 'Кино';
+    for (const field of pictureFields) {
+      const input = element('picture-' + field);
+      input.value = String(settings[field]);
+      input.disabled = original;
+      input.setAttribute('aria-valuetext', settings[field] + '%');
+      element('picture-' + field + '-value').textContent = settings[field] + '%';
+    }
+  };
+  for (const look of ['original', 'cinema']) {
+    element('look-' + look).addEventListener('click', () => {
+      filmGrade.set({ look });
+      syncPictureControls();
+    });
+  }
+  for (const field of pictureFields) {
+    const input = element('picture-' + field);
+    input.addEventListener('input', () => {
+      filmGrade.set({ [field]: input.value });
+      syncPictureControls();
+    });
+  }
+  element('picture-reset').addEventListener('click', () => {
+    filmGrade.reset();
+    syncPictureControls();
+  });
+  syncPictureControls();
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) pausePlayback();

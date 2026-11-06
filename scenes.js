@@ -48,8 +48,8 @@
     },
     {
       id: 'hero', title: 'Герой в баре', layout: 'hero',
-      image: 'assets/frame-02-bar.webp',
-      alt: 'Мужчина с сигаретой за столиком в джаз-баре тридцатых годов',
+      image: 'assets/a_cinematic_warm_toned_vintage_bar_room_portrait.png',
+      alt: 'Главный герой с сигаретой за столиком в тёплом свете джаз-бара',
       speaker: 'РАССКАЗЧИК',
       text: 'Люблю тихие вечера. Особенно когда никто не пытается меня убить',
       duration: 10000, textDelay: 2000, textDuration: 4000, zoom: true,
