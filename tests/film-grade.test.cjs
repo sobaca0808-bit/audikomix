@@ -39,14 +39,14 @@ test('CommonJS and browser exports expose the same profiles and controller API',
   const sandbox = { window: {} };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../film-grade.js'), 'utf8'), sandbox);
   assert.equal(typeof sandbox.window.AlleyFilmGrade.create, 'function');
-  assert.deepEqual(Object.keys(grade.profiles), ['alley', 'panorama', 'hero', 'dasha']);
+  assert.deepEqual(Object.keys(grade.profiles), ['alley', 'panorama', 'hero', 'dasha', 'revelation']);
   assert.deepEqual(Object.keys(sandbox.window.AlleyFilmGrade.profiles), Object.keys(grade.profiles));
-  assert.equal(grade.profiles.hero.filename, 'a_cinematic_warm_toned_vintage_bar_room_portrait.png');
+  assert.equal(grade.profiles.hero.filename, 'Сепия-нуар в баре с джазом.png');
   assert.ok(Object.isFrozen(grade.profiles));
   assert.ok(Object.isFrozen(grade.profiles.hero.R));
 });
 
-test('default cinema uses individual nine-point sRGB curves with static clipped monochrome grain', () => {
+test('default cinema preserves authored sepia with identity sRGB curves and no extra grain', () => {
   const h = documentHarness();
   const controller = grade.create({ document: h.document });
   assert.deepEqual(controller.getSettings(), { look: 'cinema', brightness: 100, contrast: 100, saturation: 100 });
@@ -70,13 +70,12 @@ test('default cinema uses individual nine-point sRGB curves with static clipped 
       assert.equal(fn.getAttribute('type'), 'table');
       assert.deepEqual(fn.getAttribute('tableValues').split(' ').map(Number), profile[channel]);
     }
-    const noise = filter.children.find(child => child.nodeName === 'feTurbulence');
-    assert.equal(noise.getAttribute('seed'), '7');
-    assert.equal(filter.children.find(child => child.getAttribute('result') === 'monochrome').getAttribute('values'), '0');
-    const grain = filter.children.find(child => child.getAttribute('result') === 'grain');
-    assert.equal(grain.children[0].getAttribute('intercept'), '0.025');
-    assert.equal(filter.children.at(-1).getAttribute('in2'), 'SourceGraphic');
-    assert.equal(filter.children.at(-1).getAttribute('operator'), 'in');
+    assert.equal(profile.saturation, 1);
+    assert.equal(profile.grain, 0);
+    assert.deepEqual(profile.R, [0, .125, .25, .375, .5, .625, .75, .875, 1]);
+    assert.deepEqual(profile.G, profile.R);
+    assert.deepEqual(profile.B, profile.R);
+    assert.equal(filter.children.some(child => child.nodeName === 'feTurbulence'), false);
   }
   assert.equal(h.all('animate').length, 0);
   const svg = h.all('svg')[0];
@@ -85,15 +84,17 @@ test('default cinema uses individual nine-point sRGB curves with static clipped 
   assert.notEqual(svg.style.display, 'none');
 });
 
-test('presets differ by scene and protect the stronger warm portraits more than the street', () => {
+test('profiles follow all five approved photographs without re-toning their ready sepia', () => {
   const h = documentHarness(), controller = grade.create({ document: h.document });
-  const street = h.image(), portrait = h.image();
-  controller.apply(street, 'alley'); controller.apply(portrait, 'hero');
-  assert.notEqual(street.style.filter, portrait.style.filter);
-  assert.ok(grade.profiles.hero.saturation < grade.profiles.alley.saturation);
-  assert.ok(grade.profiles.panorama.saturation < grade.profiles.dasha.saturation);
-  assert.notDeepEqual(grade.profiles.alley.R, grade.profiles.hero.R);
-  assert.ok(grade.profiles.hero.B.at(-1) > grade.profiles.hero.R.at(-1));
+  const scenes = require('../scenes.js').scenes;
+  assert.equal(scenes.length, 5);
+  for (const scene of scenes) {
+    const profile = grade.profiles[scene.id];
+    assert.equal(profile.filename, scene.image.slice('assets/'.length));
+    assert.equal(profile.saturation, 1);
+    assert.equal(profile.grain, 0);
+    assert.match(controller.apply(h.image(), scene.id), new RegExp('^url\\(#film-grade-' + scene.id + '\\)'));
+  }
 });
 
 test('original bypasses all grading, switching back and reset restore cinema defaults', () => {
@@ -173,4 +174,22 @@ test('one document gets stable unique IDs and supports an explicit mount', () =>
   const ids = h.all('filter').map(filter => filter.getAttribute('id'));
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(h.all('svg').length, 1);
+});
+
+test('optional grain is static, monochrome, clipped and requires an explicit bounded profile', () => {
+  const h = documentHarness();
+  grade.create({ document: h.document, profiles: {
+    custom: { ...grade.profiles.hero, grain: .025 },
+    invalid: { ...grade.profiles.hero, grain: 1 }
+  } });
+  assert.equal(h.all('filter').length, 1);
+  const filter = h.all('filter')[0];
+  const noise = h.all('feTurbulence')[0];
+  assert.equal(noise.getAttribute('seed'), '7');
+  assert.equal(filter.children.find(child => child.getAttribute('result') === 'monochrome').getAttribute('values'), '0');
+  const grain = filter.children.find(child => child.getAttribute('result') === 'grain');
+  assert.equal(grain.children[0].getAttribute('intercept'), '0.025');
+  assert.equal(filter.children.at(-1).getAttribute('in2'), 'SourceGraphic');
+  assert.equal(filter.children.at(-1).getAttribute('operator'), 'in');
+  assert.equal(h.all('animate').length, 0);
 });

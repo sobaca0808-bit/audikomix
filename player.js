@@ -85,12 +85,14 @@ function renderScene() {
   // Скринридер получает целую реплику один раз, без объявления каждой буквы.
   if (element('accessible-dialogue').textContent !== accessibleText) element('accessible-dialogue').textContent = accessibleText;
   if (frame.zoom && !reading && !reducedMotion.matches) {
-    // Одна шкала времени для текста и движения. У героя прежние 80–100%.
-    const progress = Math.min(1, elapsed / durationFor(frame));
+    // Двигается только фото внутри неподвижного окна; масштаб не открывает поля.
+    // Одна шкала времени сохраняет синхронную паузу текста, камеры и звука.
+    const progress = Math.max(0, Math.min(1, elapsed / durationFor(frame)));
     const eased = progress * progress * (3 - 2 * progress);
-    const start = frame.zoom.start ?? 0.8;
-    const delta = frame.zoom.delta ?? 0.2;
-    element('frame').style.transform = `scale(${start + delta * eased})`;
+    const start = frame.zoom.start ?? 1;
+    const delta = frame.zoom.delta ?? 0.02;
+    const scale = Math.max(1, Math.min(1.04, start + delta * eased));
+    element('frame').style.transform = `scale(${scale})`;
   } else {
     element('frame').style.transform = '';
   }
@@ -186,6 +188,9 @@ function showFrameImage(frame) {
 function render() {
   const frame = frames[current];
   showFrameImage(frame);
+  // Снимок уходящей сцены уже сохранил свой центр и масштаб.
+  element('frame').style.transformOrigin = frame.focus || '50% 50%';
+  element('frame').style.objectPosition = frame.focus || '50% 50%';
   // Снимок предыдущего кадра уже создан со своим профилем; новый получает свой.
   filmGrade?.apply(element('frame'), frame.id);
   element('frame').classList.toggle('grade-pending', false);
@@ -194,7 +199,6 @@ function render() {
   screen.classList.toggle('alley-frame', frame.layout === 'alley');
   screen.classList.toggle('panorama-frame', frame.layout === 'panorama');
   screen.style.setProperty('--scene-image', `url(${JSON.stringify(frame.image)})`);
-  element('candidate-note').hidden = !frame.candidate;
   screen.classList.toggle('dasha-frame', frame.layout === 'dasha');
   screen.classList.toggle('reading', mode === 'comic');
   renderScene();

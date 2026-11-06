@@ -11,36 +11,17 @@
   const LIMITS = { brightness: [70, 130], contrast: [70, 130], saturation: [0, 150] };
   const instances = new WeakMap();
 
-  // Девять опорных значений RGB в sRGB: тени, полутона и света меняются отдельно.
+  // Пять утверждённых исходников уже сведены автором в сепию.
+  // Нейтральные кривые сохраняют их цвет, свет, контраст и готовое зерно.
+  // Индивидуальные профили привязаны к файлам: при новой замене проверяем их заново.
+  const identity = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1];
+  const authored = filename => ({ filename, saturation: 1, R: [...identity], G: [...identity], B: [...identity], grain: 0 });
   const profiles = {
-    // Ночь: сдерживаем насыщенность, сохраняем холодные тени и темноту переулка.
-    alley: {
-      filename: 'Ночной переулок у бара «Переулок».png', saturation: 0.88,
-      R: [0.008, 0.116, 0.247, 0.378, 0.507, 0.633, 0.758, 0.878, 0.976],
-      G: [0.009, 0.113, 0.240, 0.369, 0.498, 0.624, 0.748, 0.869, 0.967],
-      B: [0.011, 0.112, 0.233, 0.358, 0.484, 0.609, 0.731, 0.849, 0.947]
-    },
-    // Общий план: ослабляем оранжевый оттенок и насыщенность, удерживаем свет ламп.
-    panorama: {
-      filename: 'Винтажный джаз-бар «Переулок» (2).png', saturation: 0.79,
-      R: [0.012, 0.137, 0.260, 0.382, 0.504, 0.625, 0.746, 0.860, 0.962],
-      G: [0.012, 0.136, 0.261, 0.387, 0.512, 0.636, 0.757, 0.870, 0.972],
-      B: [0.014, 0.138, 0.265, 0.392, 0.519, 0.644, 0.767, 0.880, 0.981]
-    },
-    // Тёплый портрет: сдерживаем красно-жёлтые полутона кожи и сохраняем мягкие света.
-    hero: {
-      filename: 'a_cinematic_warm_toned_vintage_bar_room_portrait.png', saturation: 0.78,
-      R: [0.014, 0.140, 0.263, 0.385, 0.506, 0.626, 0.744, 0.856, 0.961],
-      G: [0.014, 0.140, 0.266, 0.391, 0.516, 0.640, 0.761, 0.877, 0.979],
-      B: [0.016, 0.144, 0.272, 0.399, 0.526, 0.651, 0.775, 0.891, 0.989]
-    },
-    // Даша: более лёгкая коррекция сохраняет читаемость газеты и тепло входа в бар.
-    dasha: {
-      filename: 'Газетчица у старого бара.png', saturation: 0.90,
-      R: [0.010, 0.124, 0.254, 0.385, 0.516, 0.644, 0.768, 0.880, 0.976],
-      G: [0.011, 0.123, 0.251, 0.380, 0.508, 0.634, 0.757, 0.869, 0.965],
-      B: [0.013, 0.125, 0.253, 0.382, 0.510, 0.635, 0.756, 0.868, 0.963]
-    }
+    alley: authored('Дождливый переулок у бара «Переулок».png'),
+    panorama: authored('Сепийный джаз-бар «Переулок».png'),
+    hero: authored('Сепия-нуар в баре с джазом.png'),
+    dasha: authored('Газетчица у старого бара.png'),
+    revelation: authored('Газетный заголовок в переулке.png')
   };
   Object.values(profiles).forEach(profile => {
     ['R', 'G', 'B'].forEach(channel => Object.freeze(profile[channel]));
@@ -49,7 +30,8 @@
   Object.freeze(profiles);
 
   function validProfile(profile) {
-    return profile && Number.isFinite(profile.saturation) && profile.saturation >= 0
+    return profile && (profile.grain == null || (Number.isFinite(profile.grain) && profile.grain >= 0 && profile.grain <= 0.05))
+      && Number.isFinite(profile.saturation) && profile.saturation >= 0
       && ['R', 'G', 'B'].every(channel => Array.isArray(profile[channel]) && profile[channel].length === 9
         && profile[channel].every(value => Number.isFinite(value) && value >= 0 && value <= 1));
   }
@@ -72,14 +54,16 @@
     ['R', 'G', 'B'].forEach(channel => {
       svgElement(document, 'feFunc' + channel, { type: 'table', tableValues: profile[channel].join(' ') }, curves);
     });
-    // В конце вернём исходную альфу: полупрозрачные края не умножаются на неё дважды.
+    // Авторское зерно уже есть на фото. Дополнительный шум по умолчанию отключён.
+    if (!(profile.grain > 0)) return;
+    // При явном включении зерна в конце вернём исходную альфу.
     svgElement(document, 'feFuncA', { type: 'linear', slope: 0, intercept: 1 }, curves);
     svgElement(document, 'feTurbulence', {
       type: 'fractalNoise', baseFrequency: 0.75, numOctaves: 3, seed: 7, stitchTiles: 'stitch', result: 'noise'
     }, filter);
     svgElement(document, 'feColorMatrix', { in: 'noise', type: 'saturate', values: 0, result: 'monochrome' }, filter);
     const grain = svgElement(document, 'feComponentTransfer', { in: 'monochrome', result: 'grain' }, filter);
-    svgElement(document, 'feFuncA', { type: 'linear', slope: 0, intercept: 0.025 }, grain);
+    svgElement(document, 'feFuncA', { type: 'linear', slope: 0, intercept: profile.grain }, grain);
     svgElement(document, 'feBlend', { in: 'grain', in2: 'graded', mode: 'soft-light', result: 'textured' }, filter);
     svgElement(document, 'feComposite', { in: 'textured', in2: 'SourceGraphic', operator: 'in' }, filter);
   }

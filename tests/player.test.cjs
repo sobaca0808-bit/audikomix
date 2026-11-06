@@ -8,6 +8,13 @@ const config = fs.readFileSync(path.join(__dirname, '../scenes.js'), 'utf8');
 const intro = ['1932 год… В этом городе даже тишина работала на мафию.', 'У каждого здесь были свои секреты.', 'А дурные новости приходили без приглашения…', 'И что особенно обидно — за них ещё приходилось платить.'];
 const hero = 'Люблю тихие вечера. Особенно когда никто не пытается меня убить';
 const dasha = ['Свежий „Переулок“!', 'Дерзкое ограбление банка!', 'Главный подозреваемый — на первой полосе!', 'Газеты, господа, газеты!'];
+const images = [
+  'assets/Дождливый переулок у бара «Переулок».png',
+  'assets/Сепийный джаз-бар «Переулок».png',
+  'assets/Сепия-нуар в баре с джазом.png',
+  'assets/Газетчица у старого бара.png',
+  'assets/Газетный заголовок в переулке.png'
+];
 
 function deferred() { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; }
 
@@ -26,7 +33,7 @@ function player({ voiceSeconds = null, preparation = Promise.resolve(), reducedM
       appendChild(child) { this.children.push(child); }, addEventListener(name, handler) { this.handlers[name] = handler; }
     };
   }
-  const ids = Object.fromEntries(['frame','speaker','dialogue','accessible-dialogue','counter','back','next','start','cinema','comic','status','hint','progress','candidate-note','audio-status','volume-voice','volume-ambience','volume-music','volume-effects'].map(id => [id, makeElement()]));
+  const ids = Object.fromEntries(['frame','speaker','dialogue','accessible-dialogue','counter','back','next','start','cinema','comic','status','hint','progress','audio-status','volume-voice','volume-ambience','volume-music','volume-effects'].map(id => [id, makeElement()]));
   const screen = makeElement(), caption = makeElement();
   const preference = { matches: reducedMotion, addEventListener(name, handler) { this.change = handler; } };
   const document = { hidden: false, handlers: {}, getElementById: id => ids[id], createElement: makeElement,
@@ -60,79 +67,101 @@ function player({ voiceSeconds = null, preparation = Promise.resolve(), reducedM
 
 function scale(p) { return Number(p.ids.frame.style.transform.match(/[\d.]+/)[0]); }
 
-test('Четыре сцены: утверждённые оригиналы, тексты и настройки сохранены', () => {
+test('Пять утверждённых сцен: точные изображения, прежние тексты и немой финальный кадр', () => {
   const p = player();
-  assert.deepEqual(Array.from(p.scenes, scene => scene.id), ['alley','panorama','hero','dasha']);
-  assert.deepEqual(Array.from(p.scenes, scene => scene.duration), [16000,35000,10000,12000]);
+  assert.deepEqual(Array.from(p.scenes, scene => scene.id), ['alley','panorama','hero','dasha','revelation']);
+  assert.deepEqual(Array.from(p.scenes, scene => scene.duration), [16000,35000,10000,12000,8000]);
   assert.deepEqual(Array.from(p.scenes[0].phrases, item => item.text), intro);
   assert.equal(p.scenes[2].text, hero);
   assert.deepEqual(Array.from(p.scenes[3].phrases, item => item.text), dasha);
-  assert.equal(p.scenes[0].image, 'assets/Ночной переулок у бара «Переулок».png');
-  assert.equal(p.scenes[2].image, 'assets/a_cinematic_warm_toned_vintage_bar_room_portrait.png');
-  assert.equal(p.scenes[3].image, 'assets/Газетчица у старого бара.png');
-  assert.equal(p.scenes[1].candidate, true);
+  assert.deepEqual(Array.from(p.scenes, scene => scene.image), images);
+  assert.equal('candidate' in p.scenes[1], false, 'Панорама уже утверждена');
+  assert.deepEqual(Array.from(p.scenes, scene => scene.focus), ['50% 50%','50% 50%','55% 35%','50% 60%','50% 35%']);
   assert.equal(p.scenes[1].audio.voice.src, 'assets/audio/Pereulok_voice_natural_v2.mp3');
-  assert.equal(p.scenes[3].audio.voice, null);
-  assert.equal(p.ids.progress.children.length, 4);
-  assert.equal(p.ids.counter.textContent, 'КАДР 1 / 4');
+  assert.deepEqual(Array.from(p.scenes, scene => scene.audio.voice?.src ?? null), [null,'assets/audio/Pereulok_voice_natural_v2.mp3',null,null,null]);
+  for (const index of [0, 2, 3, 4]) assert.equal(p.scenes[index].audio.voice, null, `У сцены ${index + 1} нет добавленного голоса`);
+  assert.equal(p.scenes[4].speaker, '');
+  assert.equal(p.scenes[4].text, '');
+  assert.equal(p.scenes[4].phrases, undefined);
+  assert.deepEqual(p.scenes[4].audio.beds, p.scenes[2].audio.beds);
+  assert.equal(p.scenes[4].audio.effects.length, 0);
+  assert.equal(p.ids.progress.children.length, 5);
+  assert.equal(p.ids.counter.textContent, 'КАДР 1 / 5');
   assert.equal(p.audio.events.length, 0, 'До действия пользователя нет аудиозагрузки и запуска');
 });
 
 test('Прогресс и счётчик следуют конфигурации, а не фиксированному числу кадров', () => {
   const p = player({extraScene:true});
-  assert.equal(p.ids.progress.children.length, 5);
-  assert.equal(p.ids.counter.textContent, 'КАДР 1 / 5');
-  p.go(4);
-  assert.equal(p.ids.counter.textContent, 'КАДР 5 / 5');
+  assert.equal(p.ids.progress.children.length, 6);
+  assert.equal(p.ids.counter.textContent, 'КАДР 1 / 6');
+  p.go(5);
+  assert.equal(p.ids.counter.textContent, 'КАДР 6 / 6');
   assert.equal(p.ids.next.disabled, true);
 });
 
-test('Кино без MP3: 16 → 35 → 10 → 12 секунд, автоматический crossfade и завершение', async () => {
+test('Кино без MP3: все пять сцен 16 → 35 → 10 → 12 → 8 с, crossfade и перезапуск', async () => {
   const p = player();
   await p.click('start');
-  p.advance(15999); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 4');
-  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 4');
-  assert.equal(p.ids['candidate-note'].hidden, false);
+  p.advance(15999); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 5');
+  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 5');
   assert.equal(p.ids.dialogue.textContent, '');
-  p.advance(35000); assert.equal(p.ids.counter.textContent, 'КАДР 3 / 4');
-  p.advance(10000); assert.equal(p.ids.counter.textContent, 'КАДР 4 / 4');
-  p.advance(12000);
+  p.advance(35000); assert.equal(p.ids.counter.textContent, 'КАДР 3 / 5');
+  p.advance(10000); assert.equal(p.ids.counter.textContent, 'КАДР 4 / 5');
+  p.advance(11999); assert.equal(p.ids.dialogue.textContent, dasha[3]);
+  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 5 / 5');
+  assert.equal(p.ids.frame.src, images[4]);
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.speaker.textContent, '');
+  assert.equal(p.ids['accessible-dialogue'].textContent, '');
+  assert.equal(p.caption.classList.contains('is-empty'), true);
+  assert.equal(p.ids.next.disabled, true);
+  assert.equal(p.audio.playing, true);
+  p.advance(7999); assert.equal(p.ids.status.textContent, 'Идёт показ');
+  p.advance(1);
   assert.equal(p.ids.status.textContent, 'Конец демонстрации');
-  assert.equal(p.ids.dialogue.textContent, dasha[3]);
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.start.textContent, 'Сначала ↻');
   assert.equal(p.scheduled, 0); assert.equal(p.audio.playing, false);
   const transitions = p.audio.events.filter(e => e.type === 'play');
-  assert.deepEqual(transitions.map(e => [e.id,e.crossfade]), [['alley',false],['panorama',true],['hero',true],['dasha',true]]);
-  await p.click('start'); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 4');
+  assert.deepEqual(transitions.map(e => [e.id,e.crossfade]), [['alley',false],['panorama',true],['hero',true],['dasha',true],['revelation',true]]);
+  await p.click('start'); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 5');
+  assert.equal(p.ids.frame.src, images[0]);
+  assert.deepEqual(p.ids.progress.children.map(bar => bar.classList.contains('seen')), [true,false,false,false,false]);
+  assert.equal(p.screen.classList.contains('image-only'), true);
+  assert.equal(p.ids.dialogue.textContent, '');
 });
 
 test('Вступление: первая секунда только фото, фразы и паузы остались прежними', async () => {
   const p = player(); await p.click('start');
   p.advance(999); assert.equal(p.ids.dialogue.textContent, ''); assert.equal(p.screen.classList.contains('image-only'), true);
-  p.advance(501); assert.ok(intro[0].startsWith(p.ids.dialogue.textContent)); assert.equal(p.screen.classList.contains('image-only'), false);
+  p.advance(1); assert.equal(p.ids.dialogue.textContent, ''); assert.equal(p.screen.classList.contains('image-only'), false);
+  assert.equal(p.ids['accessible-dialogue'].textContent, intro[0]);
+  p.advance(500); assert.ok(intro[0].startsWith(p.ids.dialogue.textContent)); assert.ok(p.ids.dialogue.textContent.length > 0);
   p.advance(1500); assert.equal(p.ids.dialogue.textContent, intro[0]);
   p.advance(1250); assert.equal(p.ids.dialogue.textContent, '');
   p.advance(1750); assert.equal(p.ids.dialogue.textContent, intro[1]);
-  p.advance(2000); assert.ok(Math.abs(scale(p) - .95) < 1e-9);
+  p.advance(2000); assert.ok(Math.abs(scale(p) - 1.01) < 1e-9);
   p.advance(1500); assert.equal(p.ids.dialogue.textContent, intro[2]);
   p.advance(4000); assert.equal(p.ids.dialogue.textContent, intro[3]);
 });
 
-test('Герой остаётся отдельным третьим кадром: 80–100%, задержка 2 с и прежняя реплика', async () => {
+test('Герой остаётся отдельным третьим кадром: новая камера, задержка 2 с и прежняя реплика', async () => {
   const p = player(); p.go(2); await p.click('start');
-  assert.equal(scale(p), .8); assert.equal(p.screen.classList.contains('photo-frame'), true);
+  assert.equal(scale(p), 1);
+  assert.equal(p.ids.frame.style.transformOrigin, '55% 35%');
   p.advance(1999); assert.equal(p.ids.dialogue.textContent, '');
   p.advance(2); assert.ok(p.ids.dialogue.textContent.length > 0); assert.equal(p.ids['accessible-dialogue'].textContent, hero);
-  p.advance(2999); assert.equal(scale(p), .9);
+  p.advance(2999); assert.equal(scale(p), 1.01);
   p.advance(1000); assert.equal(p.ids.dialogue.textContent, hero);
-  p.advance(4000); assert.equal(p.ids.counter.textContent, 'КАДР 4 / 4');
+  p.advance(4000); assert.equal(p.ids.counter.textContent, 'КАДР 4 / 5');
 });
 
 test('Панорама с длинной записью: длительность берётся от полного голоса и запаса', async () => {
   const p = player({voiceSeconds:40}); p.go(1); await p.click('start');
   assert.ok(p.ids.hint.textContent.includes('2 — 43.5 с'));
-  p.advance(35000); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 4');
-  p.advance(8499); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 4');
-  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 3 / 4');
+  p.advance(35000); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 5');
+  p.advance(8499); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 5');
+  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 3 / 5');
 });
 
 test('Подготовка записи завершается до старта общей шкалы времени', async () => {
@@ -160,8 +189,8 @@ test('Пауза хранит позицию панорамы; продолже�
   assert.equal(p.ids.frame.style.transform, frozen); assert.equal(p.audio.playing, false); assert.equal(p.scheduled, 0);
   await p.click('start');
   assert.equal(p.audio.events.filter(e => e.type === 'play').at(-1).elapsed, 12500);
-  p.advance(30999); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 4');
-  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 3 / 4');
+  p.advance(30999); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 5');
+  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 3 / 5');
 });
 
 test('Комикс сразу показывает все утверждённые подписи и никогда не запускает звук', async () => {
@@ -170,22 +199,105 @@ test('Комикс сразу показывает все утверждённы
   p.go(1); assert.equal(p.ids.dialogue.textContent, '');
   p.go(2); assert.equal(p.ids.dialogue.textContent, hero);
   p.go(3); assert.equal(p.ids.dialogue.textContent, dasha.join('\n\n'));
-  p.advance(100000); assert.equal(p.ids.counter.textContent, 'КАДР 4 / 4');
+  p.go(4);
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.speaker.textContent, '');
+  assert.equal(p.ids['accessible-dialogue'].textContent, '');
+  assert.equal(p.caption.classList.contains('is-empty'), true);
+  assert.equal(p.ids.start.hidden, true);
+  p.advance(100000); assert.equal(p.ids.counter.textContent, 'КАДР 5 / 5');
   assert.equal(p.audio.events.some(e => e.type === 'play'), false);
-  await p.click('cinema'); assert.equal(p.ids.counter.textContent, 'КАДР 4 / 4'); assert.equal(p.scheduled, 0);
+  await p.click('cinema'); assert.equal(p.ids.counter.textContent, 'КАДР 5 / 5'); assert.equal(p.scheduled, 0);
+  assert.equal(p.ids.start.textContent, 'Продолжить ▶');
 });
 
-test('Даша: пауза на последнем кадре, финальная фраза, 12 с и Сначала только после конца', async () => {
+test('Даша: все прежние фразы и пауза, переход на пятую сцену ровно через 12 с', async () => {
   const p = player(); p.go(3); assert.equal(p.ids.start.textContent, 'Продолжить ▶'); await p.click('start');
-  assert.equal(scale(p), .9); p.advance(1500); assert.equal(p.ids.dialogue.textContent, dasha[0]);
+  assert.equal(scale(p), 1); p.advance(1500); assert.equal(p.ids.dialogue.textContent, dasha[0]);
   p.advance(1100); assert.equal(p.ids.dialogue.textContent, '');
   p.advance(1800); assert.equal(p.ids.dialogue.textContent, dasha[1]);
-  p.advance(1600); assert.ok(Math.abs(scale(p) - .95) < 1e-9);
+  p.advance(1600); assert.ok(Math.abs(scale(p) - 1.01) < 1e-9);
   await p.click('start'); const text = p.ids.dialogue.textContent, zoom = p.ids.frame.style.transform;
   p.advance(20000); assert.equal(p.ids.dialogue.textContent, text); assert.equal(p.ids.frame.style.transform, zoom);
   await p.click('start'); p.advance(2000); assert.equal(p.ids.dialogue.textContent, dasha[2]);
-  p.advance(4000); assert.equal(p.ids.dialogue.textContent, dasha[3]); assert.equal(scale(p), 1);
-  assert.equal(p.ids.start.textContent, 'Сначала ↻'); assert.equal(p.audio.playing, false);
+  p.advance(2600); assert.equal(p.ids.dialogue.textContent, dasha[3]);
+  p.advance(1399); assert.equal(p.ids.counter.textContent, 'КАДР 4 / 5');
+  assert.equal(p.ids.dialogue.textContent, dasha[3]);
+  assert.equal(p.ids.start.textContent, 'Пауза Ⅱ'); assert.equal(p.audio.playing, true);
+  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 5 / 5');
+  assert.equal(p.ids.dialogue.textContent, '');
+  assert.equal(p.ids.start.textContent, 'Пауза Ⅱ'); assert.equal(p.audio.playing, true);
+  p.advance(8000); assert.equal(p.ids.start.textContent, 'Сначала ↻'); assert.equal(p.audio.playing, false);
+});
+
+test('Немая пятая сцена: пауза хранит камеру и позицию, продолжение завершает ровно 8 с', async () => {
+  const p = player(); p.go(4);
+  assert.equal(p.ids.start.textContent, 'Продолжить ▶');
+  assert.equal(p.ids.next.disabled, true); assert.equal(p.ids.back.disabled, false);
+  await p.click('start'); p.advance(3000);
+  assert.equal(p.ids.dialogue.textContent, ''); assert.equal(p.ids.speaker.textContent, '');
+  assert.equal(p.ids['accessible-dialogue'].textContent, ''); assert.equal(p.caption.classList.contains('is-empty'), true);
+  await p.click('start'); const frozen = p.ids.frame.style.transform;
+  p.advance(20000);
+  assert.equal(p.ids.frame.style.transform, frozen); assert.equal(p.scheduled, 0); assert.equal(p.audio.playing, false);
+  assert.equal(p.ids.start.textContent, 'Продолжить ▶');
+  await p.click('start');
+  assert.deepEqual(p.audio.events.filter(event => event.type === 'play').map(event => [event.id, event.elapsed]), [['revelation',0],['revelation',3000]]);
+  p.advance(4999); assert.equal(p.ids.status.textContent, 'Идёт показ');
+  p.advance(1); assert.equal(p.ids.counter.textContent, 'КАДР 5 / 5');
+  assert.equal(p.ids.status.textContent, 'Конец демонстрации'); assert.equal(p.ids.start.textContent, 'Сначала ↻');
+  assert.equal(scale(p), 1.02); assert.equal(p.audio.playing, false); assert.equal(p.scheduled, 0);
+  assert.equal(p.ids.dialogue.textContent, ''); assert.equal(p.ids['accessible-dialogue'].textContent, '');
+  await p.click('start'); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 5');
+  assert.equal(scale(p), 1); assert.equal(p.ids.frame.src, images[0]);
+  assert.equal(p.audio.events.filter(event => event.type === 'play').at(-1).elapsed, 0);
+});
+
+test('Камера всех сцен плавно проходит 100–102%, панорама движется обратно по полной длительности голоса', async () => {
+  for (let index = 0; index < 5; index += 1) {
+    const p = player({voiceSeconds:40}); p.go(index); await p.click('start');
+    const duration = index === 1 ? 43500 : [16000,35000,10000,12000,8000][index];
+    const expected = index === 1 ? [1.02,1.016875,1.01,1.003125] : [1,1.003125,1.01,1.016875];
+    const samples = [scale(p)];
+    for (let quarter = 1; quarter <= 3; quarter += 1) {
+      p.advance(duration / 4);
+      samples.push(scale(p));
+    }
+    samples.forEach((value, quarter) => {
+      assert.ok(Math.abs(value - expected[quarter]) < 1e-10, `Сцена ${index + 1}, четверть ${quarter}: ${value}`);
+      assert.ok(value >= 1 && value <= 1.02, `Сцена ${index + 1}: масштаб ${value} не создаёт поля`);
+    });
+    p.advance(duration / 4 - 1);
+    assert.equal(p.ids.counter.textContent, `КАДР ${index + 1} / 5`);
+    assert.ok(Math.abs(scale(p) - (index === 1 ? 1 : 1.02)) < 1e-8);
+    assert.equal(p.ids.frame.style.transformOrigin, p.scenes[index].focus);
+    assert.equal(p.ids.frame.style.objectPosition, p.scenes[index].focus);
+  }
+});
+
+test('Камера не допускает масштаб ниже 100% даже при прежних или убывающих настройках', async () => {
+  for (const [index, zoom] of [[0,{start:.8,delta:.02}],[1,{start:1.02,delta:-.5}]]) {
+    const p = player(); p.scenes[index].zoom = zoom; p.go(index); await p.click('start');
+    assert.ok(scale(p) >= 1);
+    p.advance(p.scenes[index].duration / 2);
+    assert.equal(scale(p), 1);
+  }
+});
+
+test('Комикс отключает камеру всех пяти сцен, смена reduced motion не меняет транспорт', async () => {
+  const p = player(); await p.click('comic');
+  for (let index = 0; index < 5; index += 1) {
+    p.go(index); assert.equal(p.ids.frame.style.transform, '');
+  }
+  p.go(2); await p.click('cinema'); await p.click('start'); p.advance(2500);
+  const plays = p.audio.events.filter(event => event.type === 'play').length;
+  p.preference.matches = true; p.preference.change();
+  assert.equal(p.ids.frame.style.transform, ''); assert.equal(p.scheduled, 1); assert.equal(p.audio.playing, true);
+  p.advance(1000); assert.ok(hero.startsWith(p.ids.dialogue.textContent));
+  p.preference.matches = false; p.preference.change();
+  assert.ok(scale(p) > 1 && scale(p) < 1.02);
+  assert.equal(p.audio.events.filter(event => event.type === 'play').length, plays);
+  assert.equal(p.scheduled, 1); assert.equal(p.audio.playing, true);
 });
 
 test('Уход со вкладки, pagehide и прерывание AudioContext ставят показ и звук на паузу', async () => {
@@ -195,7 +307,7 @@ test('Уход со вкладки, pagehide и прерывание AudioContex
     if (action === 'pagehide') p.window.handlers.pagehide();
     if (action === 'interrupted') p.audio.onStatus({message:'Звук прерван',contextState:'interrupted'});
     assert.equal(p.audio.playing, false, action); assert.equal(p.scheduled, 0);
-    p.advance(30000); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 4');
+    p.advance(30000); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 5');
   }
 });
 
@@ -218,7 +330,7 @@ test('Блокировка браузером готового голоса ос
   const p = player({voiceSeconds:40, blockedVoice:true}); p.go(1); await p.click('start');
   assert.equal(p.scheduled, 0); assert.equal(p.audio.playing, false);
   assert.ok(p.ids['audio-status'].textContent.includes('Браузер не запустил звук'));
-  p.advance(50000); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 4');
+  p.advance(50000); assert.equal(p.ids.counter.textContent, 'КАДР 2 / 5');
   p.audio.blocked = false; await p.click('start');
   assert.equal(p.scheduled, 1); assert.equal(p.audio.playing, true);
 });
