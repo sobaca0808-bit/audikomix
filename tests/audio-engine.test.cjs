@@ -312,6 +312,135 @@ test('four independent volume controls work before and during preparation and cl
   near(h.engine._channels.voice.volume.gain.value, .8);
 });
 
+test('master volume is ready before audio creation and one muted output receives every channel', async () => {
+  const h = audioHarness({ ...available, 'assets/audio/step.mp3': { duration: 2 } });
+  assert.deepEqual({ ...h.engine.getMasterState() }, { volume: 1, muted: false, effectiveVolume: 1 });
+  const stateCopy = h.engine.getMasterState(); stateCopy.volume = 0;
+  assert.equal(h.engine.getMasterState().volume, 1);
+  h.engine.setMasterVolume(.65);
+  h.engine.setMuted(true);
+  assert.equal(h.contexts.length, 0, 'choosing volume and mute never creates an audio context');
+  const scene = panorama();
+  scene.audio.effects = [{ src: 'assets/audio/step.mp3', at: 0, gain: .5 }];
+  await h.engine.prepare([scene]);
+  near(h.engine._master.gain.value, 0);
+  assert.equal(h.context.active.length, 0, 'prepare never autoplays, even muted');
+  assert.deepEqual(h.engine._master.connections, [h.context.destination]);
+  for (const channel of ['voice', 'ambience', 'music', 'effects']) {
+    assert.deepEqual(h.engine._channels[channel].volume.connections, [h.engine._master]);
+  }
+  assert.equal(h.context.gains.filter(gain => gain.connections.includes(h.context.destination)).length, 1,
+    'no channel bypasses the master output');
+  h.engine.play(scene);
+  assert.equal(h.context.active.length, 4, 'voice, room, jazz and the effect keep their normal schedules');
+  function reaches(node, destination) {
+    return node === destination || (node.connections || []).some(next => reaches(next, destination));
+  }
+  assert.ok(h.context.active.every(source => reaches(source, h.engine._master)));
+  near(h.engine._channels.voice.volume.gain.value, 1);
+  h.engine.setMuted(false);
+  near(h.engine._master.gain.value, .65);
+});
+
+test('mute and volume changes never stop, duplicate, seek or reschedule a playing source', async () => {
+  const h = audioHarness({ ...available, 'assets/audio/step.mp3': { duration: 8 } });
+  const scene = panorama();
+  scene.audio.effects = [{ src: 'assets/audio/step.mp3', at: 3000, gain: .5 }];
+  await h.engine.prepare([scene]);
+  h.engine.play(scene);
+  h.context.advance(4);
+  h.engine.tick(4000);
+  const originals = [...h.context.active];
+  const scheduled = originals.map(source => [...source.args]);
+  const originalGains = Object.fromEntries(Object.entries(h.engine._channels).map(([id, channel]) =>
+    [id, { volume: channel.volume.gain.value, automation: [...channel.duck.gain.events] }]));
+  const updates = []; h.engine.onStatus = update => updates.push(update);
+  h.engine.setMasterVolume(.4);
+  for (const muted of [true, false, true, false]) {
+    h.engine.setMuted(muted);
+    near(h.engine._master.gain.value, muted ? 0 : .4);
+    assert.deepEqual(h.context.active, originals);
+    assert.deepEqual(h.context.active.map(source => source.args), scheduled);
+    assert.equal(h.engine.getStatus().elapsed, 4000);
+    assert.equal(h.engine.getStatus().playing, true);
+  }
+  assert.equal(updates.length, 0, 'changing volume cannot trigger transport status callbacks');
+  assert.equal(h.context.sources.length, originals.length);
+  for (const [id, channel] of Object.entries(h.engine._channels)) {
+    near(channel.volume.gain.value, originalGains[id].volume);
+    assert.deepEqual(channel.duck.gain.events, originalGains[id].automation);
+  }
+  h.engine.setMuted(true);
+  h.context.advance(1);
+  h.engine.tick(5000);
+  assert.equal(h.engine.getStatus().elapsed, 5000, 'the audio clock still advances while muted');
+  assert.equal(h.engine.getStatus().playing, true);
+  assert.deepEqual(h.context.active, originals);
+});
+
+test('mute restores the chosen nonzero volume, including after slider zero and clamped input', async () => {
+  const h = audioHarness();
+  h.engine.setMasterVolume(.73);
+  assert.deepEqual({ ...h.engine.toggleMuted() }, { volume: .73, muted: true, effectiveVolume: 0 });
+  assert.deepEqual({ ...h.engine.toggleMuted() }, { volume: .73, muted: false, effectiveVolume: .73 });
+  assert.deepEqual({ ...h.engine.setMasterVolume(0) }, { volume: 0, muted: true, effectiveVolume: 0 });
+  assert.deepEqual({ ...h.engine.toggleMuted() }, { volume: .73, muted: false, effectiveVolume: .73 });
+  h.engine.setMasterVolume(-2);
+  h.engine.setMuted(false);
+  near(h.engine.getMasterState().volume, .73);
+  h.engine.setMuted(true);
+  h.engine.setMasterVolume('0.35');
+  assert.deepEqual({ ...h.engine.getMasterState() }, { volume: .35, muted: false, effectiveVolume: .35 });
+  h.engine.setMasterVolume(2);
+  near(h.engine.getMasterState().volume, 1);
+  h.engine.setMasterVolume(NaN);
+  assert.deepEqual({ ...h.engine.getMasterState() }, { volume: 0, muted: true, effectiveVolume: 0 });
+  h.engine.toggleMuted();
+  near(h.engine.getMasterState().volume, 1);
+  assert.equal(h.contexts.length, 0, 'all controls work before files and Web Audio exist');
+});
+
+test('master state survives navigation, crossfades, pause and stop without changing individual levels', async () => {
+  const h = audioHarness(available);
+  const street = outside(), bar = panorama();
+  const hero = { id: 'hero', duration: 10000, audio: { voice: null, beds: bar.audio.beds, effects: [] } };
+  h.engine.setMasterVolume(.42);
+  h.engine.setVolume('voice', .8);
+  h.engine.setVolume('music', .45);
+  await h.engine.prepare([street, bar, hero]);
+  near(h.engine._master.gain.value, .42);
+  h.engine.play(street);
+  h.context.advance(16); h.engine.tick(16000);
+  h.engine.setMuted(true);
+  h.engine.play(bar, 0, { crossfade: true });
+  near(h.engine._master.gain.value, 0);
+  h.context.advance(1); h.engine.tick(1000);
+  const room = h.context.active.find(source => source.buffer.label.includes('room'));
+  near(room.connections[0].gain.value, .5, 'crossfade still progresses while muted');
+  h.engine.setVolume('ambience', .27);
+  h.engine.pause();
+  assert.equal(h.context.active.length, 0);
+  assert.equal(h.engine.getMasterState().muted, true);
+  h.engine.setMuted(false);
+  assert.equal(h.context.active.length, 0, 'unmuting a paused scene cannot resume its sources');
+  h.engine.play(bar, 1000);
+  near(h.engine._master.gain.value, .42);
+  near(h.engine._channels.voice.volume.gain.value, .8);
+  near(h.engine._channels.music.volume.gain.value, .45);
+  near(h.engine._channels.ambience.volume.gain.value, .27);
+  h.engine.play(hero, 0, { crossfade: true });
+  near(h.engine._master.gain.value, .42);
+  h.engine.stop();
+  assert.deepEqual({ ...h.engine.getMasterState() }, { volume: .42, muted: false, effectiveVolume: .42 });
+  h.engine.setMuted(true);
+  h.context.state = 'closed';
+  await h.engine.prepare([bar]);
+  assert.equal(h.contexts.length, 2);
+  near(h.engine._master.gain.value, 0, 'recreated contexts receive the retained mute before playback');
+  h.engine.setMuted(false);
+  near(h.engine._master.gain.value, .42);
+});
+
 test('remote sources are never requested and an unavailable AudioContext leaves silent playback usable', async () => {
   const h = audioHarness(available);
   const scene = panorama();

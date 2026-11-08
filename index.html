@@ -13,18 +13,30 @@
   <script src="scenes.js" defer></script>
   <script src="audio-engine.js" defer></script>
   <script src="film-grade.js" defer></script>
+  <script src="viewer-controls.js" defer></script>
   <script src="player.js" defer></script>
   <noscript><style>#frame.grade-pending{visibility:visible}</style></noscript>
 </head>
 <body>
   <main>
     <header><a class="brand" href="./">АУДИОКОМИКС<span>ИСТОРИИ, КОТОРЫЕ ОЖИВАЮТ</span></a><span class="edition">ПИЛОТНЫЙ ВЫПУСК / 01</span></header>
-    <section class="intro"><p class="eyebrow">ГАНГСТЕРСКАЯ КОМЕДИЯ · 1930-е</p><h1>Переулок<span>.</span></h1><p>Большие дела начинаются в маленьких переулках.</p></section>
-    <section class="player" aria-label="Плеер истории Переулок">
-      <div class="toolbar"><span>ИСТОРИЯ 01 <span class="muted">/ ДЕМОНСТРАЦИЯ</span></span><div class="modes" role="group" aria-label="Режим просмотра"><button id="cinema" aria-pressed="true">Кино</button><button id="comic" aria-pressed="false">Комикс</button></div></div>
+    <section class="intro" aria-labelledby="story-title"><p class="eyebrow"><span></span>Гангстерская комедия · 1930-е<span></span></p><h1 id="story-title">Переулок<span>.</span></h1><p>Большие дела начинаются в маленьких переулках.</p><div class="intro-rule" aria-hidden="true"></div></section>
+    <section id="cinema-player" class="player" aria-label="Плеер истории Переулок">
+      <div class="toolbar"><span class="story-mark">ИСТОРИЯ 01 <span class="muted">/ ЧАСТНЫЙ ПОКАЗ</span></span><div class="modes" role="group" aria-label="Режим просмотра"><button id="cinema" aria-pressed="true">Кино</button><button id="comic" aria-pressed="false">Комикс</button></div></div>
       <div class="screen alley-frame image-only"><div class="visual"><div id="previous-frame" class="image-layer" aria-hidden="true" hidden></div><div class="image-layer"><img id="frame" class="grade-pending" src="assets/Дождливый переулок у бара «Переулок».png" alt="Дождливый ночной переулок: прохожие, автомобиль и освещённый вход в бар"></div><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div></div><div class="caption" role="region" tabindex="0" aria-label="Субтитры. Длинный текст можно прокручивать." aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue" aria-hidden="true"></p><p id="accessible-dialogue" class="sr-only"></p></div></div>
       <div id="progress" class="progress" aria-hidden="true"></div>
-      <div class="controls"><button id="back" aria-label="Предыдущий кадр">← Назад</button><button id="start" class="primary">Начать ▶</button><button id="next" aria-label="Следующий кадр">Вперёд →</button></div>
+      <div class="control-deck">
+        <div class="controls"><button id="back" aria-label="Предыдущий кадр">← Назад</button><button id="start" class="primary">Начать</button><button id="next" aria-label="Следующий кадр">Вперёд →</button></div>
+        <div class="viewer-tools">
+          <div class="master-control" role="group" aria-label="Общая громкость">
+            <button id="mute" class="icon-button" aria-label="Отключить звук" aria-pressed="false" data-muted="false"><svg id="volume-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M11 4 6 8H3v8h3l5 4V4Z"/><g class="sound-waves"><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></g><path class="sound-off" d="m16 9 6 6m0-6-6 6"/></svg></button>
+            <label class="sr-only" for="master-volume">Общая громкость</label><input id="master-volume" type="range" min="0" max="100" step="1" value="100" aria-valuetext="100%"><output id="master-volume-value" for="master-volume">100%</output>
+          </div>
+          <button id="fullscreen" class="fullscreen-button" aria-pressed="false"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg><span id="fullscreen-label">Полный экран</span></button>
+        </div>
+      </div>
+      <div class="subtitle-tools"><label for="subtitle-size">Размер субтитров</label><input id="subtitle-size" type="range" min="85" max="140" step="5" value="100" aria-valuetext="100%"><output id="subtitle-size-value" for="subtitle-size">100%</output></div>
+      <p id="viewer-status" class="viewer-status" role="status" aria-live="polite"></p>
       <div class="details"><span id="counter"></span><span id="status" role="status"></span></div>
       <div class="audio-panel">
         <p id="audio-status" role="status">Звук будет проверен после нажатия «Начать». Запись голоса и фоновые звуки добавляются отдельно.</p>

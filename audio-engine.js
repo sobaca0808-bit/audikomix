@@ -13,6 +13,10 @@
       this.context = null;
       this._channels = {};
       this._volumes = Object.fromEntries(CHANNELS.map(channel => [channel, clamp(config.volumes?.[channel] ?? 1)]));
+      this._master = null;
+      this._masterVolume = 1;
+      this._muted = false;
+      this._lastAudibleVolume = 1;
       this._buffers = new Map();
       this._loads = new Map();
       this._voices = new Set();
@@ -37,12 +41,17 @@
           const AudioContext = root.AudioContext || root.webkitAudioContext;
           if (!AudioContext) throw new Error('Web Audio is unavailable');
           this.context = new AudioContext();
+          // One final gain controls every channel, including the unprocessed voice.
+          // Apply a preselected mute before any connection can produce sound.
+          this._master = this.context.createGain();
+          this._master.gain.value = this.getMasterState().effectiveVolume;
+          this._master.connect(this.context.destination);
           for (const channel of CHANNELS) {
             const duck = this.context.createGain();
             const volume = this.context.createGain();
             volume.gain.value = this._volumes[channel];
             duck.connect(volume);
-            volume.connect(this.context.destination);
+            volume.connect(this._master);
             this._channels[channel] = { duck, volume };
           }
           const stateChanged = () => this._emit();
@@ -360,6 +369,37 @@
       }
     }
 
+    getMasterState() {
+      return { volume: this._masterVolume, muted: this._muted,
+        effectiveVolume: this._muted ? 0 : this._masterVolume };
+    }
+
+    _applyMasterVolume() {
+      const parameter = this._master?.gain;
+      if (parameter && this.context?.state !== 'closed') {
+        const now = this.context.currentTime;
+        parameter.cancelScheduledValues(now);
+        parameter.setValueAtTime(this.getMasterState().effectiveVolume, now);
+      }
+      // Gain changes deliberately leave sources, scene time and status callbacks alone.
+      return this.getMasterState();
+    }
+
+    setMasterVolume(value) {
+      this._masterVolume = clamp(value);
+      if (this._masterVolume > 0) this._lastAudibleVolume = this._masterVolume;
+      this._muted = this._masterVolume === 0;
+      return this._applyMasterVolume();
+    }
+
+    setMuted(muted) {
+      this._muted = Boolean(muted);
+      if (!this._muted && this._masterVolume === 0) this._masterVolume = this._lastAudibleVolume;
+      return this._applyMasterVolume();
+    }
+
+    toggleMuted() { return this.setMuted(!this._muted); }
+
     getStatus() {
       const loading = [...this._voices].some(source => !this._buffers.has(source));
       const voice = !this._voices.size ? 'none' : loading ? 'loading' : [...this._voices].some(source => !this._buffers.get(source)) ? 'missing' : 'ready';
@@ -371,6 +411,7 @@
       else if (this._missing.size) message = 'Некоторые локальные звуки недоступны. Показ продолжается.';
       return { state: this._state, voice, message, missing: [...this._missing], activeSources: this._sources.size,
         playing: this._playing, elapsed: this._elapsed, contextState: this.context?.state || 'unavailable',
+        master: this.getMasterState(),
         voiceActive: Boolean(this._playing && this.context?.state === 'running' && this._voice && this.context.currentTime >= this._voice.when) };
     }
 

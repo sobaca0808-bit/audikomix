@@ -7,6 +7,10 @@ let timer = null;
 let elapsed = 0;
 let startedAt = 0;
 let starting = false;
+let hasStarted = false;
+let silentAudioInterrupted = false;
+let audioRecovering = false;
+let recoveryVersion = 0;
 let startVersion = 0;
 let imageVersion = 0;
 let imageAnimations = [];
@@ -16,6 +20,7 @@ const caption = document.querySelector('.caption');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const audio = new window.AlleyAudio(story.audio, { onStatus: updateAudioStatus });
 const filmGrade = window.AlleyFilmGrade?.create({ document });
+const viewerControls = window.AlleyViewerControls?.create({ document, window, audio, onMasterChange: handleMasterChange });
 const progress = element('progress');
 const bars = frames.map(() => {
   const bar = document.createElement('span');
@@ -27,21 +32,64 @@ function durationFor(frame) {
   return audio.durationFor(frame);
 }
 
+function isSilent() {
+  const master = audio.getMasterState?.();
+  return Boolean(master?.muted || master?.effectiveVolume === 0);
+}
+
 function updateAudioStatus(info) {
   const noBeds = Object.values(story.audio.beds).every(track => !track.src);
   element('audio-status').textContent = info.message + (noBeds ? ' Фоновые звуки ещё не добавлены.' : '');
-  if (playing && ['suspended', 'interrupted', 'closed'].includes(info.contextState)) pausePlayback();
+  if (playing && ['suspended', 'interrupted', 'closed'].includes(info.contextState)) {
+    if (isSilent() || audioRecovering || silentAudioInterrupted) silentAudioInterrupted = true;
+    else pausePlayback();
+  }
 }
 
 function playAudio(crossfade = false) {
-  if (audio.play(frames[current], elapsed, { crossfade }) === false && audio.getStatus().voice === 'ready') {
+  if (audioRecovering) return true;
+  const played = audio.play(frames[current], elapsed, { crossfade });
+  if (played === false && (isSilent() || silentAudioInterrupted)) {
+    silentAudioInterrupted = true;
+    return true;
+  }
+  if (played === false && audio.getStatus().voice === 'ready') {
     playing = false;
     stopTimer();
     audio.pause();
     element('audio-status').textContent = 'Браузер не запустил звук. Нажмите «Продолжить», чтобы включить утверждённую запись.';
     return false;
   }
+  if (played !== false && !isSilent()) silentAudioInterrupted = false;
   return true;
+}
+
+// Обычный mute меняет только громкость. Если браузер остановил аудиоконтекст
+// во время немого просмотра, возвращаем звук с текущего времени фильма.
+async function handleMasterChange(next, previous) {
+  const version = ++recoveryVersion;
+  if (isSilent() || !playing || mode !== 'cinema') {
+    audioRecovering = false;
+    return;
+  }
+  const contextState = audio.getStatus().contextState;
+  if (!silentAudioInterrupted && !audioRecovering && contextState === 'running') return;
+  if (!previous?.muted && previous?.effectiveVolume !== 0 && !silentAudioInterrupted && !audioRecovering) return;
+  const launch = startVersion;
+  audioRecovering = true; // stop/prepare могут синхронно прислать suspended.
+  silentAudioInterrupted = true;
+  audio.stop();
+  try {
+    // Вызов остаётся внутри действия пользователя и разблокирует контекст.
+    await audio.prepare(frames);
+  } catch (_) { /* Показ не зависит от доступности аудио. */ }
+  if (version !== recoveryVersion) return;
+  audioRecovering = false;
+  if (launch !== startVersion || !playing || mode !== 'cinema' || document.hidden || isSilent()) return;
+  elapsed = Math.min(durationFor(frames[current]), Math.max(0, performance.now() - startedAt));
+  const resumed = audio.play(frames[current], elapsed);
+  silentAudioInterrupted = resumed === false;
+  if (resumed === false) element('audio-status').textContent = 'Звук пока недоступен. Просмотр и субтитры продолжаются; громкость можно включить повторно.';
 }
 
 
@@ -83,7 +131,16 @@ function renderScene() {
   if (element('speaker').textContent !== speaker) element('speaker').textContent = speaker;
   if (element('dialogue').textContent !== text) element('dialogue').textContent = text;
   // Скринридер получает целую реплику один раз, без объявления каждой буквы.
-  if (element('accessible-dialogue').textContent !== accessibleText) element('accessible-dialogue').textContent = accessibleText;
+  if (element('accessible-dialogue').textContent !== accessibleText) {
+    element('accessible-dialogue').textContent = accessibleText;
+    caption.classList.toggle('caption-enter', false);
+    if (accessibleText && playing && !reading && !reducedMotion.matches) {
+      void caption.offsetWidth; // Новый вход только для новой реплики, а не каждой буквы.
+      caption.classList.toggle('caption-enter', true);
+    }
+  }
+  if (reading || reducedMotion.matches) caption.classList.toggle('caption-enter', false);
+  caption.style.animationPlayState = playing ? 'running' : 'paused';
   if (frame.zoom && !reading && !reducedMotion.matches) {
     // Двигается только фото внутри неподвижного окна; масштаб не открывает поля.
     // Одна шкала времени сохраняет синхронную паузу текста, камеры и звука.
@@ -205,7 +262,7 @@ function render() {
   element('counter').textContent = `КАДР ${current + 1} / ${frames.length}`;
   element('back').disabled = current === 0;
   element('next').disabled = current === frames.length - 1;
-  element('start').textContent = starting ? 'Отменить загрузку' : playing ? 'Пауза Ⅱ' : atEnd() ? 'Сначала ↻' : current === 0 ? 'Начать ▶' : 'Продолжить ▶';
+  element('start').textContent = starting ? 'Отменить загрузку' : playing ? 'Пауза' : atEnd() ? 'Сначала' : hasStarted ? 'Продолжить' : 'Начать';
   element('start').hidden = mode === 'comic';
   element('cinema').setAttribute('aria-pressed', String(mode === 'cinema'));
   element('comic').setAttribute('aria-pressed', String(mode === 'comic'));
@@ -216,6 +273,8 @@ function render() {
 
 function cancelStart() {
   startVersion += 1;
+  recoveryVersion += 1;
+  audioRecovering = false;
   starting = false;
 }
 
@@ -280,6 +339,7 @@ element('start').addEventListener('click', async () => {
     return;
   }
   starting = false;
+  hasStarted = true;
   playing = true;
   playAudio();
   scheduleNext();
