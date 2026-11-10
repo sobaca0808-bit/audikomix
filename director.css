@@ -124,6 +124,7 @@
 .director-actions .primary, .director-panel button[data-action="save"] { border-color: #c8aa6f; background: linear-gradient(#d2b980, #aa8d53); color: #20241b; }
 .director-status { margin: 0; color: #d6c49c; font-size: 12px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
 .director-status:not(:empty) { padding: 8px 0; }
+.director-panel > .director-status:not(:empty) { padding-inline: 16px; }
 .director-status[data-error="true"], .director-danger, .director-panel [role="alert"] { color: #f0b7a0; }
 .director-media-list { display: grid; gap: 10px; min-width: 0; }
 .director-media-row { min-width: 0; padding: 10px; border: 1px solid #89754f50; border-radius: 3px; background: #101a145c; overflow-wrap: anywhere; }

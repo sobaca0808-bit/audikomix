@@ -18,9 +18,14 @@
   function validId(value) { return typeof value === 'string' && /^[A-Za-z0-9_-]{1,96}$/.test(value); }
 
   function create(options = {}) {
-    const indexedDB = own(options, 'indexedDB') ? options.indexedDB : root.indexedDB;
+    let indexedDB, accessError = null;
+    // Some sandboxed/private contexts throw while reading the property itself.
+    // Keep the editor constructible so its draft and export remain available.
+    try { indexedDB = own(options, 'indexedDB') ? options.indexedDB : root.indexedDB; }
+    catch (error) { accessError = error; }
     let connection = null;
     function open() {
+      if (accessError) return Promise.reject(storageError(accessError));
       if (!indexedDB || typeof indexedDB.open !== 'function') return Promise.reject(new Error('Локальное хранилище недоступно. Сохранение не выполнено; экспортируйте проект и аудиофайлы.'));
       if (connection) return connection;
       connection = new Promise((resolve, reject) => {

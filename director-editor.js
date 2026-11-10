@@ -72,6 +72,7 @@
     let mediaBusy = false;
     let revision = 0;
     let epoch = 0;
+    let missingVersion = 0;
     let liveTimer = null;
     let message = '';
     let error = false;
@@ -102,14 +103,15 @@
       return player.applyStory(compiled(project), { sceneId: selectedSceneId, mode, elapsed, autoplay: false });
     }
     async function checkMissing() {
-      const version = epoch;
+      const version = ++missingVersion;
+      const projectEpoch = epoch;
       const references = clone(draft.media);
       const unavailable = new Set();
       for (const item of references) {
         try { if (!await storage.getMedia(item.id)) unavailable.add(item.id); }
         catch (_) { unavailable.add(item.id); }
       }
-      if (destroyed || version !== epoch) return;
+      if (destroyed || version !== missingVersion || projectEpoch !== epoch) return;
       missing = unavailable;
       if (view) view.media();
     }
@@ -165,6 +167,7 @@
       if (!draft.scenes.some(item => item.id === id)) throw new Error('Кадр не найден.');
       selectedSceneId = id;
       selectedPhrase = 0;
+      revision += 1;
       stopLive();
       refresh();
       if (opened) {
@@ -220,6 +223,7 @@
     function close() {
       if (!opened) return;
       opened = false;
+      revision += 1;
       stopLive();
       if (view) { view.panel.hidden = true; view.toggle.setAttribute('aria-expanded', 'false'); }
       previousFocus?.focus?.();
@@ -231,8 +235,9 @@
       // Call synchronously inside the button gesture, before awaiting anything.
       const result = player.preview(compiled(project), { sceneId: selectedSceneId });
       close();
+      const version = revision;
       await result;
-      say('Предпросмотр. Откройте режим режиссёра, чтобы продолжить работу.');
+      if (!destroyed && !opened && version === revision) say('Предпросмотр. Откройте режим режиссёра, чтобы продолжить работу.');
       return clone(project);
     }
     async function save() {
@@ -240,7 +245,10 @@
       if (mediaBusy) throw new Error('Дождитесь загрузки аудиофайла.');
       stopLive();
       const project = normalized();
+      revision += 1;
       const version = revision;
+      const viewer = player.getState?.() || {};
+      const viewerSnapshot = JSON.stringify(viewer);
       saving = true; refresh({ fields: false });
       say('Сохраняем проект в этом браузере…');
       try {
@@ -248,7 +256,8 @@
         saved = clone(project);
         if (version === revision) draft = clone(project);
         dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-        if (!destroyed && version === revision) await show(saved, { mode: opened ? 'comic' : returnMode });
+        if (!destroyed && version === revision && !viewer.playing && !viewer.starting
+          && JSON.stringify(player.getState?.() || {}) === viewerSnapshot) await show(saved, { mode: opened ? 'comic' : returnMode });
         say(dirty ? 'Версия сохранена. Более новые изменения ещё не сохранены.' : 'Проект сохранён в этом браузере.');
         return clone(saved);
       } catch (failure) { say('Не удалось сохранить: ' + failure.message, true); throw failure; }
@@ -269,7 +278,7 @@
     }
     function exportProject() { return JSON.stringify(normalized(), null, 2); }
     async function importProject(input) {
-      requireEditable(); stopLive();
+      requireEditable();
       let raw;
       if (typeof input === 'string') {
         if (new TextEncoder().encode(input).byteLength > MAX_JSON) throw new Error('JSON проекта должен быть не больше 1 МБ.');
@@ -277,15 +286,28 @@
         catch (_) { throw new Error('Файл не содержит корректный JSON проекта.'); }
       } else raw = input;
       const project = model.validate(raw, baseline); // Nothing changes until the entire import validates.
+      stopLive();
       epoch += 1;
+      const projectEpoch = epoch;
       draft = clone(project);
       if (!draft.scenes.some(item => item.id === selectedSceneId)) selectedSceneId = draft.scenes[0].id;
       selectedPhrase = 0;
       touch({ fields: true, live: false });
+      const version = revision;
       await show(project, { mode: opened ? 'comic' : returnMode });
+      if (destroyed || projectEpoch !== epoch || version !== revision) return null;
       await checkMissing();
+      if (destroyed || projectEpoch !== epoch || version !== revision) return null;
       say(missing.size ? 'Проект импортирован в черновик. Для отсутствующего звука выберите исходные аудиофайлы; затем сохраните проект.' : 'Проект импортирован в черновик. Нажмите «Сохранить», чтобы оставить его в браузере.');
       return clone(project);
+    }
+    async function importFile(file) {
+      requireEditable();
+      if (!file || !Number.isFinite(file.size) || file.size > MAX_JSON || typeof file.text !== 'function') throw new Error('JSON проекта должен быть не больше 1 МБ.');
+      const version = revision, projectEpoch = epoch;
+      const text = await file.text();
+      if (destroyed || projectEpoch !== epoch || version !== revision) return null;
+      return importProject(text);
     }
     function assertAudio(file) {
       if (!file || !Number.isFinite(file.size) || file.size <= 0 || file.size > MAX_FILE) throw new Error('Выберите аудиофайл размером до 32 МБ.');
@@ -313,6 +335,7 @@
         if (destroyed || version !== epoch) return null;
         draft.media.push(metadata);
         draft.scenes.find(item => item.id === sceneId).tracks.push(track);
+        missingVersion += 1;
         missing.delete(metadata.id);
         touch({ fields: true });
         say('Аудиофайл добавлен в черновик. Голос воспроизводится целиком. Нажмите «Сохранить».');
@@ -335,6 +358,7 @@
         if (destroyed || version !== epoch) return false;
         await storage.putMedia({ id, blob: file, metadata: clone(metadata) });
         if (destroyed || version !== epoch) return false;
+        missingVersion += 1;
         missing.delete(id);
         refresh();
         if (opened) await show(normalized());
@@ -378,7 +402,7 @@
       if (!item) throw new Error('Аудиофайл не найден в проекте.');
       const blob = await storage.getMedia(id);
       if (!blob) throw new Error('Аудиофайла нет в этом браузере. Выберите исходный файл для восстановления связи.');
-      download(blob, item.name);
+      await download(blob, item.name);
       return blob;
     }
     function getDraft() { return clone(draft); }
@@ -515,27 +539,33 @@
       listen(byId('save'), 'click', guarded(save));
       listen(byId('cancel'), 'click', guarded(cancel));
       listen(byId('export'), 'click', guarded(() => { download(new (window.Blob || Blob)([exportProject()], { type: 'application/json' }), 'pereulok-project.json'); say('JSON скачан. Аудиофайлы скачайте отдельно ниже.'); }));
-      listen(inputs.import, 'change', guarded(async () => { const file = inputs.import.files?.[0]; if (!file) return; if (file.size > MAX_JSON) throw new Error('JSON проекта должен быть не больше 1 МБ.'); await importProject(await file.text()); inputs.import.value = ''; }));
+      listen(inputs.import, 'change', guarded(async () => { const file = inputs.import.files?.[0]; if (!file) return; await importFile(file); inputs.import.value = ''; }));
       fields();
     }
 
+    // Attach the local resolver before yielding. A late storage read must never
+    // reconfigure audio or replace a film the viewer has already started.
+    if (typeof player.setMediaResolver === 'function') player.setMediaResolver(id => storage.getMedia(id));
+    const initialPlayerState = JSON.stringify(player.getState?.() || {});
+    let deferredSaved = false;
     try {
       const stored = await storage.load();
       if (stored) {
         saved = model.validate(stored, baseline);
         draft = clone(saved);
         if (!draft.scenes.some(item => item.id === selectedSceneId)) selectedSceneId = draft.scenes[0].id;
-        await show(saved, { mode: player.getState?.().mode || 'cinema' });
+        if (JSON.stringify(player.getState?.() || {}) === initialPlayerState) {
+          await show(saved, { mode: player.getState?.().mode || 'cinema' });
+        } else deferredSaved = true;
       }
     } catch (failure) { loadProblem = 'Локальное сохранение недоступно: ' + failure.message + ' Исходная история сохранена; черновик можно экспортировать в JSON.'; }
-    if (typeof player.setMediaResolver === 'function') player.setMediaResolver(id => storage.getMedia(id));
     if (mounted && !viewOnly) mount();
     if (loadProblem) say(loadProblem, true);
-    else say('Выберите кадр. Сохранение и звук остаются в этом браузере.');
+    else say(deferredSaved ? 'Сохранённый проект доступен в редакторе. Текущий просмотр не прерван.' : 'Выберите кадр. Сохранение и звук остаются в этом браузере.');
     await checkMissing();
     return {
       open, close, selectScene, reorder, updateScene: patchScene, setPhrase, addPhrase, removePhrase,
-      preview, save, cancel, importProject, exportProject, addAudio, relinkAudio, addTrack, updateTrack, removeTrack, downloadMedia,
+      preview, save, cancel, importProject, importFile, exportProject, addAudio, relinkAudio, addTrack, updateTrack, removeTrack, downloadMedia,
       getDraft, getSaved, getState,
       destroy() {
         if (destroyed) return;

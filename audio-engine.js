@@ -523,7 +523,9 @@
       if (this._state === 'idle') message = 'Звук включится после нажатия «Начать».';
       else if (this._state === 'loading') message = 'Подготавливаем локальный звук…';
       else if (this._state === 'unavailable') message = 'Звук недоступен в этом браузере. Показ работает без звука.';
-      else if (voice === 'missing') message = root.location?.protocol === 'file:' ? 'Для локального звука откройте плеер через HTTP-сервер. Запись голоса пока не подключена.' : 'Запись голоса пока не подключена. Показ работает без неё.';
+      else if (voice === 'missing') message = [...this._voices].some(source => this._buffers.get(source))
+        ? 'Некоторые записи голоса недоступны. Загруженные записи готовы к воспроизведению.'
+        : root.location?.protocol === 'file:' ? 'Для локального звука откройте плеер через HTTP-сервер. Запись голоса пока не подключена.' : 'Запись голоса пока не подключена. Показ работает без неё.';
       else if (this._missing.size) message = 'Некоторые локальные звуки недоступны. Показ продолжается.';
       return { state: this._state, voice, message, missing: [...this._missing], activeSources: this._sources.size,
         playing: this._playing, elapsed: this._elapsed, contextState: this.context?.state || 'unavailable',

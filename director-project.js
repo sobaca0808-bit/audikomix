@@ -168,6 +168,9 @@
           return result;
         });
       }
+      if (original.holdLastPhrase && settings.phrases.at(-1)?.endMs !== settings.durationMs) {
+        scene.holdLastPhrase = false;
+      }
       scene.audio = scene.audio || { voice: null, beds: [], effects: [] };
       if (settings.tracks.length) {
         scene.audio.tracks = settings.tracks.map(track => ({ id: track.id, src: 'director-media:' + track.assetId,
@@ -176,6 +179,12 @@
           scene.audio.voice = null;
           scene.duration = Math.max(scene.duration, ...settings.tracks.filter(track => track.kind === 'voice')
             .map(track => track.startMs + media.get(track.assetId).durationMs + 1500));
+          // A final caption authored through the original scene end follows a
+          // longer complete voice. An explicitly earlier hide time stays exact.
+          const last = scene.phrases?.at(-1);
+          if (original.holdLastPhrase && last?.end === settings.durationMs && scene.duration > settings.durationMs) {
+            last.end = scene.duration;
+          }
         }
       }
       return scene;

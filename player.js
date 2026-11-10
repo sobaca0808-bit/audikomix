@@ -41,7 +41,8 @@ function isSilent() {
 }
 
 function updateAudioStatus(info) {
-  const noBeds = Object.values(story.audio.beds).every(track => !track.src);
+  const noBeds = Object.values(story.audio.beds).every(track => !track.src)
+    && !frames.some(frame => frame.audio?.tracks?.some(track => track.kind !== 'voice'));
   element('audio-status').textContent = info.message + (noBeds ? ' Фоновые звуки ещё не добавлены.' : '');
   if (playing && ['suspended', 'interrupted', 'closed'].includes(info.contextState)) {
     if (isSilent() || audioRecovering || silentAudioInterrupted) silentAudioInterrupted = true;
@@ -443,7 +444,7 @@ function applyStory(nextStory, options = {}) {
 }
 
 window.AlleyPlayer = {
-  getState: () => ({ sceneId: frames[current].id, index: current, mode, elapsed, playing }),
+  getState: () => ({ sceneId: frames[current].id, index: current, mode, elapsed, playing, starting, interactionVersion: startVersion }),
   pause: pausePlayback,
   applyStory,
   preview: (nextStory, options = {}) => applyStory(nextStory, { ...options, mode: 'cinema', elapsed: 0, autoplay: true }),

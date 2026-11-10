@@ -650,3 +650,13 @@ test('multiple uploaded voices duck background smoothly and master mute leaves a
   near(h.engine._master.gain.value, .6);
   assert.deepEqual(h.context.active, originals);
 });
+
+test('a missing optional voice does not hide that another uploaded voice is ready', async () => {
+  const h = audioHarness({}, {resolveMedia: async () => ({size:10,type:'audio/wav',arrayBuffer:async()=>({duration:3,label:'local voice'})})});
+  const uploaded = {id:'custom',duration:5000,audio:{voice:null,beds:[],effects:[],tracks:[{id:'voice',src:'director-media:own-voice',kind:'voice',start:0,gain:1,loop:false}]}};
+  await h.engine.prepare([panorama(), uploaded]);
+  assert.equal(h.engine.getStatus().voice,'missing');
+  assert.match(h.engine.getStatus().message,/Загруженные записи готовы/);
+  assert.equal(h.engine.play(uploaded,0),true);
+  assert.equal(h.context.active.some(source=>source.buffer.label==='local voice'),true);
+});
