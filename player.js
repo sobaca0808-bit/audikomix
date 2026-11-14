@@ -22,6 +22,7 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const audio = new window.AlleyAudio(story.audio, { onStatus: updateAudioStatus });
 const filmGrade = window.AlleyFilmGrade?.create({ document });
 const viewerControls = window.AlleyViewerControls?.create({ document, window, audio, onMasterChange: handleMasterChange });
+const playerLayout = window.AlleyPlayerLayout?.create({ document, window });
 const captionRenderer = window.AlleyCaptionRenderer?.create({ document, element: element('dialogue') });
 const directorEffects = window.AlleyDirectorEffects?.create({ document });
 const progress = element('progress');
@@ -137,6 +138,15 @@ function revealText(text, fraction) {
 function renderScene() {
   const frame = frames[current];
   const reading = mode === 'comic';
+  // Normal view reserves the camera's largest scale, keeping every photo edge
+  // inside the fitted image window throughout the existing zoom animation.
+  const startScale = frame.zoom?.start ?? 1;
+  const endScale = startScale + (frame.zoom?.delta ?? 0.02);
+  const largestScale = Math.max(1, startScale, endScale);
+  const ceiling = frame.zoom && !reading && !reducedMotion.matches
+    ? Math.min(1.04, Number.isFinite(largestScale) ? largestScale : 1.04) : 1;
+  const image = element('frame');
+  if (image.style.getPropertyValue?.('--frame-max-scale') !== String(ceiling)) image.style.setProperty('--frame-max-scale', String(ceiling));
   const { visible, text, accessibleText, captionSpeaker } = sceneCaption(frame, reading);
   screen.classList.toggle('image-only', Boolean(frame.layout === 'alley' && !reading && elapsed < 1000));
   caption.classList.toggle('is-empty', !visible);
@@ -229,7 +239,7 @@ function showFrameImage(frame) {
     snapshot.removeAttribute('id');
     snapshot.alt = '';
     snapshot.style.opacity = '1';
-    if (currentReady) snapshot.style.transformOrigin = window.getComputedStyle(image).transformOrigin;
+    if (currentReady) snapshot.style.transformOrigin = image.style.transformOrigin || window.getComputedStyle(image).transformOrigin;
   }
   clearImageTransition();
   if (snapshot) {
@@ -458,7 +468,7 @@ if (window.AlleyDirector && window.AlleyDirectorProject && window.AlleyDirectorS
   const storage = window.AlleyDirectorStorage.create();
   window.AlleyDirector.create({ document, window, baseline: window.AlleyStory,
     model: window.AlleyDirectorProject, storage, player: window.AlleyPlayer })
-    .then(controller => { window.AlleyDirectorInstance = controller; })
+    .then(controller => { window.AlleyDirectorInstance = controller; playerLayout?.refresh(); })
     .catch(() => {
       const status = element('viewer-status');
       if (status) status.textContent = 'Редактор не загрузился. Просмотр комикса доступен; исходная история сохранена.';
