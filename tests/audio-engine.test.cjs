@@ -7,7 +7,7 @@ const source = fs.readFileSync(path.join(__dirname, '../audio-engine.js'), 'utf8
 
 // The fake audio clock evaluates native gain automation and natural buffer ends.
 // No recording or audio fixture is added to the project by these tests.
-function audioHarness(files = {}, { protocol = 'https:', deferred, loadTimeout = 10000, resume } = {}) {
+function audioHarness(files = {}, { protocol = 'https:', deferred, loadTimeout = 10000, resume, resolveMedia } = {}) {
   const contexts = [];
   const requests = [];
   class Parameter {
@@ -95,7 +95,7 @@ function audioHarness(files = {}, { protocol = 'https:', deferred, loadTimeout =
       jazz: { src: 'assets/audio/jazz.mp3', channel: 'music', loop: true },
       dishes: { src: null, channel: 'effects', loop: true }
     }
-  });
+  }, { resolveMedia });
   return { engine, contexts, requests, get context() { return contexts[0]; } };
 }
 
@@ -486,4 +486,177 @@ test('a stalled file or browser resume cannot leave preparation pending or apply
   assert.equal(h.engine.getStatus().voice, 'missing', 'late decoded data cannot change a running fallback timeline');
   assert.equal(h.engine.durationFor(scene), 35000);
   assert.equal(h.context.active.length, 0);
+});
+
+// A provider stands in for IndexedDB Blob reads; the fake decoder reads its metadata.
+// Browser tests exercise real Blob/WAV decoding without adding recordings to the repo.
+const localBlob = (duration, label, size = 64) => ({ size, arrayBuffer: async () => ({ duration, label }) });
+const projectScene = (tracks, duration = 5000) => ({ id: 'director', duration,
+  audio: { voice: null, beds: [], effects: [], tracks } });
+const layer = (id, kind, start = 0, gain = 1, loop = false) =>
+  ({ id, kind, src: 'director-media:' + id, start, gain, loop });
+
+test('local project media decodes once without fetch and all four layers reach the master output', async () => {
+  const resolved = [];
+  const h = audioHarness({}, { resolveMedia: async id => {
+    resolved.push(id);
+    return localBlob(id === 'voice' ? 40 : 6, id);
+  } });
+  const scene = projectScene([
+    layer('voice', 'voice', 2000, .8, true), layer('music', 'music', 1000, .4, true),
+    layer('ambience', 'ambience', 0, .6, true), layer('effects', 'effects', 3000, .3)
+  ]);
+  h.engine.setMasterVolume(.37);
+  await h.engine.prepare([scene, scene]);
+  assert.deepEqual(resolved.sort(), ['ambience', 'effects', 'music', 'voice']);
+  assert.deepEqual(h.requests, []);
+  assert.equal(h.context.active.length, 0);
+  assert.equal(h.engine.getStatus().voice, 'ready');
+  assert.equal(h.engine.durationFor(scene), 43500);
+  h.engine.play(scene);
+  assert.equal(h.context.active.length, 4);
+  const records = [...h.engine._sources];
+  for (const track of scene.audio.tracks) {
+    const record = records.find(item => item.trackId === track.id);
+    assert.ok(record);
+    near(record.gain.gain.value, track.gain);
+    assert.equal(record.gain.connections[0], h.engine._channels[track.kind][track.kind === 'voice' ? 'volume' : 'duck']);
+    assert.equal(h.engine._channels[track.kind].volume.connections[0], h.engine._master);
+    assert.equal(record.source.args.length, 2, 'every recording plays without a trimming duration argument');
+    assert.equal(record.source.playbackRate.value, 1);
+  }
+  const voice = records.find(item => item.kind === 'voice');
+  assert.equal(voice.source.loop, false, 'voice can never loop, even if an unvalidated caller asks');
+  assert.equal(voice.when, 2);
+  near(h.engine._master.gain.value, .37);
+  h.context.advance(2); h.engine.tick(2000);
+  assert.equal(h.engine.getStatus().voiceActive, true);
+  near(h.engine._channels.music.duck.gain.value, .2);
+  near(h.engine._channels.voice.volume.gain.value, 1);
+});
+
+test('uploaded layers retain future starts, one-shot offsets and loop positions through pause and navigation', async () => {
+  const h = audioHarness({}, { resolveMedia: async id => localBlob(id === 'voice' ? 10 : 3, id) });
+  const scene = projectScene([layer('voice', 'voice', 2000), layer('music', 'music', 1000, .5, true),
+    layer('step', 'effects', 3000, .6)], 12000);
+  await h.engine.prepare([scene]);
+  h.engine.play(scene);
+  h.context.advance(.7); h.engine.tick(700); h.engine.pause();
+  const old = [...h.context.sources];
+  h.context.advance(30);
+  h.engine.play(scene, 700);
+  const leadVoice = h.context.active.find(item => item.buffer.label === 'voice');
+  near(leadVoice.when - h.context.currentTime, 1.3);
+  assert.equal(leadVoice.offset, 0);
+  assert.ok(old.every(source => source.stopped));
+  h.context.advance(4.3); h.engine.tick(5000); h.engine.pause();
+  h.context.advance(10); h.engine.play(scene, 5000);
+  near(h.context.active.find(item => item.buffer.label === 'voice').offset, 3);
+  near(h.context.active.find(item => item.buffer.label === 'music').offset, 1);
+  near(h.context.active.find(item => item.buffer.label === 'step').offset, 2);
+  const atFive = [...h.context.active];
+  h.engine.play(scene, 5000);
+  assert.deepEqual(h.context.active, atFive, 'duplicate play does not add another layer');
+  h.context.advance(2); h.engine.tick(7000); h.engine.pause(); h.engine.play(scene, 7000);
+  assert.equal(h.context.active.some(item => item.buffer.label === 'step'), false);
+  const active = [...h.context.active];
+  h.engine.play(projectScene([], 2000), 0, { crossfade: true });
+  assert.ok(active.every(source => source.stopped), 'director layers are scoped to their scene');
+  assert.equal(h.context.active.length, 0);
+});
+
+test('project reconfiguration keeps output preferences while replacing sources, caches and voice duration', async () => {
+  let duration = 8;
+  const h = audioHarness({}, { resolveMedia: async id => localBlob(duration, id) });
+  const scene = projectScene([layer('voice', 'voice', 500)], 1000);
+  h.engine.setMasterVolume(.42); h.engine.setMuted(true); h.engine.setVolume('music', .57);
+  await h.engine.prepare([scene]); h.engine.play(scene);
+  const context = h.context, old = [...context.active], master = h.engine._master;
+  assert.equal(h.engine.durationFor(scene), 10000);
+  const config = { ...h.engine.config, volumes: { music: .01 }, beds: {} };
+  duration = 3;
+  h.engine.reconfigure(config);
+  assert.ok(old.every(source => source.stopped));
+  assert.equal(h.contexts.length, 1);
+  assert.equal(h.engine.context, context);
+  assert.equal(h.engine._master, master);
+  assert.equal(h.engine.getStatus().state, 'idle');
+  assert.equal(h.engine.getStatus().activeSources, 0);
+  assert.equal(h.engine.getStatus().voice, 'none');
+  near(h.engine.getMasterState().volume, .42);
+  near(h.engine.getMasterState().effectiveVolume, 0);
+  near(h.engine._channels.music.volume.gain.value, .57);
+  await h.engine.prepare([scene]);
+  assert.equal(h.engine.durationFor(scene), 5000, 'a relinked file is decoded again instead of using its old cache');
+  h.engine.setMuted(false); h.engine.play(scene);
+  near(h.engine._master.gain.value, .42);
+  near(h.engine._channels.music.volume.gain.value, .57);
+});
+
+test('an old media read or preparation cannot publish stale data after a project replacement', async () => {
+  let release;
+  const waiting = new Promise(resolve => { release = resolve; });
+  const h = audioHarness({}, { resolveMedia: async () => { await waiting; return localBlob(50, 'old'); } });
+  const scene = projectScene([layer('same', 'voice')], 2000);
+  const pending = h.engine.prepare([scene]);
+  h.engine.reconfigure(h.engine.config, { resolveMedia: async () => localBlob(2, 'new') });
+  await h.engine.prepare([scene]);
+  assert.equal(h.engine.durationFor(scene), 3500);
+  assert.equal(h.engine.getStatus().state, 'ready');
+  release(); await pending;
+  assert.equal(h.engine._buffers.get('director-media:same').label, 'new');
+  assert.equal(h.engine.durationFor(scene), 3500);
+  assert.equal(h.engine.getStatus().state, 'ready');
+  assert.equal(h.engine._preparations, 0);
+  assert.equal(h.context.active.length, 0);
+  h.engine.play(scene);
+  assert.deepEqual(h.context.active.map(item => item.buffer.label), ['new']);
+});
+
+test('malformed, missing, oversized and remote project audio never bypasses the local provider', async () => {
+  const resolved = [];
+  const h = audioHarness({}, { resolveMedia: async id => {
+    resolved.push(id);
+    return id === 'large' ? localBlob(1, id, 33 * 1024 * 1024) : null;
+  } });
+  const sources = ['https://example.com/a.mp3', 'blob:https://example.com/id', 'data:audio/wav;base64,AAAA',
+    'director-media:../id', 'director-media:', 'director-media:missing', 'director-media:large'];
+  const scene = projectScene(sources.map((src, index) => ({ ...layer(String(index), 'voice'), src })));
+  await h.engine.prepare([scene]);
+  assert.deepEqual(h.requests, []);
+  assert.deepEqual(resolved, ['missing', 'large']);
+  assert.equal(h.engine.getStatus().voice, 'missing');
+  assert.equal(h.engine.getStatus().missing.length, sources.length);
+  assert.equal(h.engine.durationFor(scene), 5000);
+  h.engine.play(scene);
+  assert.equal(h.context.active.length, 0);
+});
+
+test('multiple uploaded voices duck background smoothly and master mute leaves all schedules alone', async () => {
+  const h = audioHarness({}, { resolveMedia: async id => localBlob(id === 'voice1' ? 2 : id === 'voice2' ? 3 : 20, id) });
+  const scene = projectScene([layer('voice1', 'voice', 1000), layer('voice2', 'voice', 3300), layer('bed', 'music', 0, .5, true)], 8000);
+  await h.engine.prepare([scene]); h.engine.play(scene);
+  const originals = [...h.context.active];
+  const now = h.context.currentTime;
+  for (const elapsed of [0, 600, 800, 1000, 3000, 3100, 3200, 3300, 6300, 6700, 7100]) {
+    near(h.engine._channels.music.duck.gain.valueAt(now + elapsed / 1000), h.engine._duckValue('music', scene, elapsed));
+  }
+  h.engine.setMasterVolume(.6); h.engine.setMuted(true);
+  assert.deepEqual(h.context.active, originals);
+  near(h.engine._master.gain.value, 0);
+  h.context.advance(2); h.engine.tick(2000);
+  assert.equal(h.engine.getStatus().voiceActive, true);
+  h.engine.setMuted(false);
+  near(h.engine._master.gain.value, .6);
+  assert.deepEqual(h.context.active, originals);
+});
+
+test('a missing optional voice does not hide that another uploaded voice is ready', async () => {
+  const h = audioHarness({}, {resolveMedia: async () => ({size:10,type:'audio/wav',arrayBuffer:async()=>({duration:3,label:'local voice'})})});
+  const uploaded = {id:'custom',duration:5000,audio:{voice:null,beds:[],effects:[],tracks:[{id:'voice',src:'director-media:own-voice',kind:'voice',start:0,gain:1,loop:false}]}};
+  await h.engine.prepare([panorama(), uploaded]);
+  assert.equal(h.engine.getStatus().voice,'missing');
+  assert.match(h.engine.getStatus().message,/Загруженные записи готовы/);
+  assert.equal(h.engine.play(uploaded,0),true);
+  assert.equal(h.context.active.some(source=>source.buffer.label==='local voice'),true);
 });
