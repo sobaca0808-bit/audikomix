@@ -677,11 +677,40 @@
     }
   }
 ];
+  const effects = {
+    door: 'DOORWood_FrontDoorOpen_OS_01.ogg',
+    woodLeft: 'FEETHmn_ShoeWoodWalk_OS_01.ogg',
+    woodRight: 'FEETHmn_ShoeWoodWalk_OS_02.ogg',
+    pavement: 'FEETHmn_ShoeConcreteWalk_OS_01.ogg',
+    paper: 'PAPRHndl_PaperCrumple_OS_01.ogg',
+    glass: 'impactGlass_light_000.ogg'
+  };
+  const roomGain = { hero: .34, revelation: .33, panorama: .45, whispers: .24,
+    valentin: .16, friends: .12, intruders: .06 };
+  // Scene-local milliseconds. Keep event timing separate from dialogue.
+  const cues = {
+    alley: [[3800, 'pavement', .13], [4390, 'pavement', .10]],
+    hero: [[2300, 'glass', .22]],
+    dasha: [[1400, 'pavement', .24], [1810, 'pavement', .18], [2050, 'paper', .16]],
+    revelation: [[1200, 'door', .32], [2400, 'woodLeft', .22], [2900, 'woodRight', .20],
+      [8200, 'paper', .30], [34200, 'paper', .16]],
+    panorama: [[5300, 'paper', .13]],
+    whispers: [[17300, 'glass', .16]],
+    valentin: [[250, 'door', .31], [4500, 'woodLeft', .32], [5050, 'woodRight', .30],
+      [5620, 'woodLeft', .25], [6200, 'woodRight', .21]],
+    friends: [[3600, 'glass', .17], [5900, 'paper', .12]],
+    intruders: [[160, 'door', .52], [4700, 'woodLeft', .33], [5330, 'woodRight', .31],
+      [5990, 'woodLeft', .28]]
+  };
   const scenes = source.map(input => {
     const scene = timeline.buildScene(input);
     if (scene.id === 'alley' || scene.id === 'dasha') {
       scene.audio.beds.push({ id: 'rain', gain: scene.id === 'alley' ? .65 : .48 });
     }
+    if (roomGain[scene.id]) scene.audio.beds.push({ id: 'room', gain: roomGain[scene.id] });
+    scene.audio.effects = (cues[scene.id] || []).map(([at, effect, gain]) => ({
+      src: 'assets/audio/' + effects[effect], at, gain
+    }));
     return scene;
   });
   const audio = {
@@ -690,7 +719,7 @@
     duck: { ambience: .3, music: .2, effects: .4, attack: 400, release: 800 },
     beds: {
       rain: { src: 'assets/audio/calpo_rain.ogg', channel: 'ambience', loop: false },
-      room: { src: null, channel: 'ambience', loop: true },
+      room: { src: 'assets/audio/crowd.ogg', channel: 'ambience', loop: true },
       jazz: { src: null, channel: 'music', loop: true },
       dishes: { src: null, channel: 'effects', loop: true }
     }

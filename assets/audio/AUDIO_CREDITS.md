@@ -8,6 +8,24 @@
 
 SHA-256: `f244cb49c82787dd2a4f6a28a97a419ab29532bb6aebf46c331be657672da5b0`.
 
+## Добавленные эффекты и фон
+
+**Oculus Audio Pack 01**, © 2015 Oculus VR, LLC. [Первоначальный выпуск](https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/), [лицензия комплекта](https://github.com/facebookincubator/Meta-open-sound/blob/514c926efecdb3c7812bf00eedf8e5c8d61dd681/corpora/oculus-audio-pack/LICENSE), [каталог и атрибуция](https://github.com/facebookincubator/Meta-open-sound/blob/514c926efecdb3c7812bf00eedf8e5c8d61dd681/corpora/oculus-audio-pack/README.md). [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) разрешает распространение и адаптацию с указанием автора, ссылки и изменений. Meta переименовала файлы по UCS и перекодировала WAV в OGG. В «Переулке» OGG скопированы побайтово, время и уровни заданы средствами плеера.
+
+| Локальное имя и файл правообладателя | Назначение |
+| --- | --- |
+| [DOORWood_FrontDoorOpen_OS_01.ogg](https://github.com/facebookincubator/Meta-open-sound/blob/514c926efecdb3c7812bf00eedf8e5c8d61dd681/corpora/oculus-audio-pack/ogg/DOORWood_FrontDoorOpen_OS_01.ogg) | Открывание деревянной двери |
+| [FEETHmn_ShoeConcreteWalk_OS_01.ogg](https://github.com/facebookincubator/Meta-open-sound/blob/514c926efecdb3c7812bf00eedf8e5c8d61dd681/corpora/oculus-audio-pack/ogg/FEETHmn_ShoeConcreteWalk_OS_01.ogg) | Шаг по твёрдой мостовой |
+| [FEETHmn_ShoeWoodWalk_OS_01.ogg](https://github.com/facebookincubator/Meta-open-sound/blob/514c926efecdb3c7812bf00eedf8e5c8d61dd681/corpora/oculus-audio-pack/ogg/FEETHmn_ShoeWoodWalk_OS_01.ogg) | Шаг по дереву 1 |
+| [FEETHmn_ShoeWoodWalk_OS_02.ogg](https://github.com/facebookincubator/Meta-open-sound/blob/514c926efecdb3c7812bf00eedf8e5c8d61dd681/corpora/oculus-audio-pack/ogg/FEETHmn_ShoeWoodWalk_OS_02.ogg) | Шаг по дереву 2 |
+| [PAPRHndl_PaperCrumple_OS_01.ogg](https://github.com/facebookincubator/Meta-open-sound/blob/514c926efecdb3c7812bf00eedf8e5c8d61dd681/corpora/oculus-audio-pack/ogg/PAPRHndl_PaperCrumple_OS_01.ogg) | Шуршание/смятие бумаги |
+
+
+- `impactGlass_light_000.ogg` — Kenney, [Impact Sounds](https://kenney.nl/assets/impact-sounds), [конкретный файл в зеркале](https://github.com/Mcamento8/open-game-sfx-index/blob/34bbe8b525b5ceff3804915ea745532af11f6055/audio/impact-sounds/impactGlass_light_000.ogg), CC0 1.0 для Impact Sounds. Лёгкий контакт со стеклом. Добавлен без обработки.
+- `crowd.ogg` — Psykophobia, [Loud crowd chatting, Freesound №608996](https://freesound.org/s/608996/), CC0 1.0. Взята версия TODAK, повторно сведённая из полевой записи для петли. Автор, ID и лицензия зафиксированы в [списке источников](https://github.com/euuuuuuan/todak-public/blob/f298bf5d4fa9a0f1552ce8ca437ea1d940b42d4f/assets/thirdparty/ambience_src/SOURCES.json) и подтверждаются [независимой атрибуцией](https://shows.acast.com/the-westward-eye/episodes/1-a-proposition-of-importance). [Конкретный OGG](https://github.com/euuuuuuan/todak-public/blob/f298bf5d4fa9a0f1552ce8ca437ea1d940b42d4f/assets/ambience/crowd.ogg) добавлен без дальнейшей обработки. Оригинальная страница Freesound в этой среде недоступна.
+
+Получено из публичных репозиториев GitHub 19.11.2026.
+
 ## Кандидаты: страницы проверены, оригиналы не получены и не прослушаны
 
 | Задача | Название / автор | Источник | Лицензия на странице | Условия и нерешённые вопросы |
