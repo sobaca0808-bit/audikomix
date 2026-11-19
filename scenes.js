@@ -677,13 +677,19 @@
     }
   }
 ];
-  const scenes = source.map(timeline.buildScene);
+  const scenes = source.map(input => {
+    const scene = timeline.buildScene(input);
+    if (scene.id === 'alley' || scene.id === 'dasha') {
+      scene.audio.beds.push({ id: 'rain', gain: scene.id === 'alley' ? .65 : .48 });
+    }
+    return scene;
+  });
   const audio = {
     crossfade: 2000,
     volumes: { voice: 1, ambience: .35, music: .2, effects: .3 },
     duck: { ambience: .3, music: .2, effects: .4, attack: 400, release: 800 },
     beds: {
-      rain: { src: null, channel: 'ambience', loop: true },
+      rain: { src: 'assets/audio/calpo_rain.ogg', channel: 'ambience', loop: false },
       room: { src: null, channel: 'ambience', loop: true },
       jazz: { src: null, channel: 'music', loop: true },
       dishes: { src: null, channel: 'effects', loop: true }

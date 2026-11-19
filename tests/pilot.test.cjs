@@ -72,12 +72,14 @@ test('preliminary timing has finite non-overlapping cues, readable typing and a 
   }
 });
 
-test('sound plan has relative voice/music/ambience/sfx windows and no actual sources', () => {
+test('sound plan has relative voice/music/ambience/sfx windows apart from the connected rain ambience', () => {
   const kinds = new Set();
-  assert.ok(Object.values(story.audio.beds).every(bed => bed.src === null));
+  assert.equal(story.audio.beds.rain.src, 'assets/audio/calpo_rain.ogg');
+  assert.ok(fs.existsSync(path.join(root, story.audio.beds.rain.src)));
+  assert.ok(Object.entries(story.audio.beds).filter(([id]) => id !== 'rain').every(([, bed]) => bed.src === null));
   for (const scene of story.scenes) {
     assert.equal(scene.audio.voice, null);
-    assert.equal(scene.audio.beds.length, 0);
+    assert.deepEqual(scene.audio.beds.map(bed => bed.id), ['alley', 'dasha'].includes(scene.id) ? ['rain'] : []);
     assert.equal(scene.audio.effects.length, 0);
     assert.equal(scene.audioPlan.filter(cue => cue.kind === 'voice').length, scene.phrases.length);
     for (const cue of scene.audioPlan) {
