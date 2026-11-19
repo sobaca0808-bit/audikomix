@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="176" viewBox="0 0 560 176">
+  <defs>
+    <filter id="worn" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".16" numOctaves="3" seed="12" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".2"/></feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="soft-light"/>
+    </filter>
+  </defs>
+  <g filter="url(#worn)">
+    <path fill="#292722" d="M0 0h560v176H0z"/>
+    <path fill="#333027" d="M3 3h270v79H3zM284 92h273v79H284z"/>
+    <path fill="#2c2b26" d="M284 3h273v79H284zM3 92h129v79H3zM143 92h130v79H143z"/>
+    <path d="M0 87h560M0 175h560M278 0v87M137 88v88M418 88v88" stroke="#151918" stroke-width="6"/>
+    <path d="M0 91h560M0 4h560M0 171h560M273 1v79M132 93v74M413 93v74" stroke="#756044" stroke-opacity=".16" stroke-width="2"/>
+    <path d="m37 23 13 4-2 7m143 18 10-6 6 6m252-28 4 9-8 11M74 131l15-4 12 5m239 9-17 6-12-4m201-31-9 10 3 7" fill="none" stroke="#101715" stroke-opacity=".42" stroke-width="1.5"/>
+  </g>
+</svg>
