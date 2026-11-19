@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const director = require('../director-editor.js');
 const model = require('../director-project.js');
-const source = require('../scenes.js');
+const source = require('./fixtures/legacy-story.cjs');
 const copy = value => JSON.parse(JSON.stringify(value));
 const initial = () => model.fromStory(source);
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }

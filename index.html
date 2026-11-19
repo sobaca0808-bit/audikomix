@@ -3,15 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Переулок — Аудиокомикс</title>
+  <title>Переулок — Первая полоса</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="director.css">
   <link rel="stylesheet" href="player-layout.css">
-  <link rel="preload" href="assets/Дождливый переулок у бара «Переулок».png" as="image">
-  <link rel="preload" href="assets/Сепия-нуар в баре с джазом.png" as="image">
-  <link rel="preload" href="assets/Газетчица у старого бара.png" as="image">
-  <link rel="preload" href="assets/Сепийный джаз-бар «Переулок».png" as="image">
-  <link rel="preload" href="assets/Газетный заголовок в переулке.png" as="image">
+  <link rel="preload" href="assets/scene-01.webp" as="image">
+  <link rel="preload" href="assets/scene-02.webp" as="image">
+  <link rel="preload" href="assets/scene-03.webp" as="image">
+  <link rel="preload" href="assets/scene-04.webp" as="image">
+  <link rel="preload" href="assets/scene-05.webp" as="image">
+  <link rel="preload" href="assets/scene-06.webp" as="image">
+  <link rel="preload" href="assets/scene-07.webp" as="image">
+  <link rel="preload" href="assets/scene-08.webp" as="image">
+  <link rel="preload" href="assets/scene-09.webp" as="image">
+  <link rel="preload" href="assets/scene-10.webp" as="image">
+  <script src="pilot-timeline.js" defer></script>
   <script src="scenes.js" defer></script>
   <script src="audio-engine.js" defer></script>
   <script src="film-grade.js" defer></script>
@@ -28,10 +34,10 @@
 <body>
   <main>
     <header><a class="brand" href="./">АУДИОКОМИКС<span>ИСТОРИИ, КОТОРЫЕ ОЖИВАЮТ</span></a><span class="edition">ПИЛОТНЫЙ ВЫПУСК / 01</span></header>
-    <section class="intro" aria-labelledby="story-title"><p class="eyebrow"><span></span>Гангстерская комедия · 1930-е<span></span></p><h1 id="story-title">Переулок<span>.</span></h1><p>Большие дела начинаются в маленьких переулках.</p><div class="intro-rule" aria-hidden="true"></div></section>
+    <section class="intro" aria-labelledby="story-title"><p class="eyebrow"><span></span>Гангстерская комедия · 1930-е<span></span></p><h1 id="story-title">Переулок<span>.</span></h1><p>Пилотная серия «Первая полоса».</p><div class="intro-rule" aria-hidden="true"></div></section>
     <section id="cinema-player" class="player" aria-label="Плеер истории Переулок">
       <div class="toolbar"><span class="story-mark">ИСТОРИЯ 01 <span class="muted">/ ЧАСТНЫЙ ПОКАЗ</span></span><div class="modes" role="group" aria-label="Режим просмотра"><button id="cinema" aria-pressed="true">Кино</button><button id="comic" aria-pressed="false">Комикс</button></div></div>
-      <div class="screen alley-frame image-only"><div class="visual"><div id="previous-frame" class="image-layer" aria-hidden="true" hidden></div><div class="image-layer"><img id="frame" class="grade-pending" src="assets/Дождливый переулок у бара «Переулок».png" alt="Дождливый ночной переулок: прохожие, автомобиль и освещённый вход в бар"></div><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div></div><div class="caption" role="region" tabindex="0" aria-label="Субтитры. Длинный текст можно прокручивать." aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue" aria-hidden="true"></p><p id="accessible-dialogue" class="sr-only"></p></div></div>
+      <div class="screen alley-frame image-only"><div class="visual"><div id="previous-frame" class="image-layer" aria-hidden="true" hidden></div><div class="image-layer"><img id="frame" class="grade-pending" src="assets/scene-01.webp" alt="Дождливый ночной переулок: прохожие, автомобиль и освещённый вход в бар"></div><div class="screen-label">ПЕРЕУЛОК <span>1932</span></div><div id="end-card" class="end-card" aria-hidden="true" hidden><p id="end-card-title"></p></div></div><div class="caption" role="region" tabindex="0" aria-label="Субтитры. Длинный текст можно прокручивать." aria-live="polite" aria-atomic="true"><p id="speaker"></p><p id="dialogue" aria-hidden="true"></p><p id="accessible-dialogue" class="sr-only"></p></div></div>
       <div id="progress" class="progress" aria-hidden="true"></div>
       <div class="control-deck">
         <div class="controls"><button id="back" aria-label="Предыдущий кадр">← Назад</button><button id="start" class="primary">Начать</button><button id="next" aria-label="Следующий кадр">Вперёд →</button></div>
@@ -73,7 +79,7 @@
         <button id="picture-reset" class="picture-reset">Сбросить настройки изображения</button>
       </details>
     </section>
-    <footer><p id="hint"></p><p>Запись голоса и фоновые звуки добавляются отдельно</p></footer>
+    <footer><p class="timing-note">Хронометраж предварительный — до записи голосов.</p><p id="hint"></p><p>Запись голоса и фоновые звуки добавляются отдельно</p></footer>
   </main>
 </body>
 </html>

@@ -15,6 +15,7 @@ let recoveryVersion = 0;
 let startVersion = 0;
 let imageVersion = 0;
 let imageAnimations = [];
+let imageTransitionFollowsPlayback = false;
 const element = id => document.getElementById(id);
 const screen = document.querySelector('.screen');
 const caption = document.querySelector('.caption');
@@ -23,7 +24,7 @@ const audio = new window.AlleyAudio(story.audio, { onStatus: updateAudioStatus }
 const filmGrade = window.AlleyFilmGrade?.create({ document });
 const viewerControls = window.AlleyViewerControls?.create({ document, window, audio, onMasterChange: handleMasterChange });
 const playerLayout = window.AlleyPlayerLayout?.create({ document, window });
-const captionRenderer = window.AlleyCaptionRenderer?.create({ document, element: element('dialogue') });
+const captionRenderer = window.AlleyCaptionRenderer?.create({ document, element: element('dialogue'), scrollContainer: caption });
 const directorEffects = window.AlleyDirectorEffects?.create({ document });
 const progress = element('progress');
 let bars = frames.map(() => {
@@ -104,12 +105,17 @@ function stopTimer() {
 }
 
 function sceneCaption(frame, reading) {
+  if (!reading && frame.endCard) {
+    const ending = window.AlleyPilotTimeline?.endCardState(frame, elapsed, { duration: durationFor(frame), reducedMotion: reducedMotion.matches });
+    if (ending?.visible) return { visible: false, text: '', accessibleText: ending.title > 0 ? frame.endCard.text : '', captionSpeaker: '' };
+  }
   if (frame.phrases?.length) {
     if (reading) {
       const speakers = new Set(frame.phrases.map(phrase => phrase.speaker ?? frame.speaker).filter(Boolean));
       const mixed = speakers.size > 1;
-      const text = frame.phrases.map(phrase => mixed && (phrase.speaker ?? frame.speaker)
+      let text = frame.phrases.map(phrase => mixed && (phrase.speaker ?? frame.speaker)
         ? `${phrase.speaker ?? frame.speaker}: ${phrase.text}` : phrase.text).join('\n\n');
+      if (frame.endCard) text += '\n\n' + frame.endCard.text;
       return { visible: true, text, accessibleText: text, captionSpeaker: mixed ? '' : [...speakers][0] ?? frame.speaker };
     }
     const phrase = frame.phrases.find(item => elapsed >= item.start && elapsed < item.end)
@@ -138,6 +144,7 @@ function revealText(text, fraction) {
 function renderScene() {
   const frame = frames[current];
   const reading = mode === 'comic';
+  syncImageTransition();
   // Normal view reserves the camera's largest scale, keeping every photo edge
   // inside the fitted image window throughout the existing zoom animation.
   const startScale = frame.zoom?.start ?? 1;
@@ -152,7 +159,7 @@ function renderScene() {
   caption.classList.toggle('is-empty', !visible);
   const speaker = visible ? captionSpeaker ?? frame.speaker : '';
   if (element('speaker').textContent !== speaker) element('speaker').textContent = speaker;
-  if (captionRenderer) captionRenderer.render({ fullText: accessibleText, visibleText: text });
+  if (captionRenderer) captionRenderer.render({ fullText: accessibleText, visibleText: text, autoScroll: playing && !reading });
   else if (element('dialogue').textContent !== text) element('dialogue').textContent = text;
   // Скринридер получает целую реплику один раз, без объявления каждой буквы.
   if (element('accessible-dialogue').textContent !== accessibleText) {
@@ -178,6 +185,17 @@ function renderScene() {
     element('frame').style.transform = '';
   }
   directorEffects?.render(frame, elapsed, { reading, reducedMotion: reducedMotion.matches });
+  const endCard = element('end-card');
+  if (endCard) {
+    const ending = window.AlleyPilotTimeline?.endCardState(frame, elapsed, { reading, reducedMotion: reducedMotion.matches, duration: durationFor(frame) });
+    endCard.hidden = !ending?.visible;
+    if (ending?.visible) {
+      endCard.style.backgroundColor = `rgba(11, 16, 15, ${ending.shade})`;
+      const title = element('end-card-title');
+      title.textContent = ending.text;
+      title.style.opacity = String(ending.title);
+    }
+  }
 }
 
 function tick(now) {
@@ -217,11 +235,20 @@ function atEnd() {
 function clearImageTransition() {
   imageAnimations.forEach(animation => animation.cancel());
   imageAnimations = [];
+  imageTransitionFollowsPlayback = false;
   element('frame').style.opacity = '1';
   const previous = element('previous-frame');
   if (previous) {
     previous.hidden = true;
     if (previous.replaceChildren) previous.replaceChildren();
+  }
+}
+
+function syncImageTransition() {
+  if (!imageTransitionFollowsPlayback) return;
+  for (const animation of imageAnimations) {
+    if (!playing && animation.playState === 'running') animation.pause();
+    else if (playing && animation.playState === 'paused') animation.play();
   }
 }
 
@@ -231,6 +258,7 @@ function showFrameImage(frame) {
   const version = ++imageVersion;
   const previous = element('previous-frame');
   const transitionMs = frame.transitionMs ?? 200;
+  const followsPlayback = playing;
   const canFade = transitionMs > 0 && previous && image.animate && image.decode && !reducedMotion.matches;
   const currentReady = canFade && image.complete && image.naturalWidth;
   const snapshot = currentReady ? image.cloneNode(true)
@@ -262,6 +290,8 @@ function showFrameImage(frame) {
       outgoing.finished.catch(() => {});
       imageAnimations.push(outgoing);
     }
+    imageTransitionFollowsPlayback = followsPlayback;
+    syncImageTransition();
     incoming.finished.then(() => {
       if (version === imageVersion) clearImageTransition();
     }).catch(() => {});
@@ -465,7 +495,7 @@ window.AlleyPlayer = {
 };
 
 if (window.AlleyDirector && window.AlleyDirectorProject && window.AlleyDirectorStorage) {
-  const storage = window.AlleyDirectorStorage.create();
+  const storage = window.AlleyDirectorStorage.create(story.storageKey ? { namespace: story.storageKey } : {});
   window.AlleyDirector.create({ document, window, baseline: window.AlleyStory,
     model: window.AlleyDirectorProject, storage, player: window.AlleyPlayer })
     .then(controller => { window.AlleyDirectorInstance = controller; playerLayout?.refresh(); })

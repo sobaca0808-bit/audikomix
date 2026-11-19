@@ -1,0 +1,62 @@
+[
+  {
+    "scene": 1,
+    "title": "Дождливый переулок",
+    "image": "assets/scene-01.webp",
+    "source_name": "Дождливый переулок у бара «Переулок»(4).png"
+  },
+  {
+    "scene": 2,
+    "title": "Герой с сигаретой",
+    "image": "assets/scene-02.webp",
+    "source_name": "Сепия-нуар в баре с джазом(4).png"
+  },
+  {
+    "scene": 3,
+    "title": "Даша у входа в бар",
+    "image": "assets/scene-03.webp",
+    "source_name": "Газетчица у старого бара(4).png"
+  },
+  {
+    "scene": 4,
+    "title": "Газета «Разыскивается»",
+    "image": "assets/scene-04.webp",
+    "source_name": "Газетный заголовок в переулке(4).png"
+  },
+  {
+    "scene": 5,
+    "title": "Панорама бара",
+    "image": "assets/scene-05.webp",
+    "source_name": "Сепийный джаз-бар «Переулок»(3).png"
+  },
+  {
+    "scene": 6,
+    "title": "Шёпот посетителей",
+    "image": "assets/scene-06.webp",
+    "source_name": "Разыскивается_ тайна джаз-бара.png"
+  },
+  {
+    "scene": 7,
+    "title": "Появление Валентина",
+    "image": "assets/scene-07.webp",
+    "source_name": "Полицейский входит в джаз-бар под дождём(1).png"
+  },
+  {
+    "scene": 8,
+    "title": "Разговор друзей",
+    "image": "assets/scene-08.webp",
+    "source_name": "Нуарная беседа в джаз-баре(2).png"
+  },
+  {
+    "scene": 9,
+    "title": "Незваные гости",
+    "image": "assets/scene-09.webp",
+    "source_name": "Ночной бар и незваные гости(1).png"
+  },
+  {
+    "scene": 10,
+    "title": "Приглашение Валентину",
+    "image": "assets/scene-10.webp",
+    "source_name": "Кинематографичное приглашение в баре(1).png"
+  }
+]

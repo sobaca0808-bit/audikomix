@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const storageModule = require('../director-storage.js');
 const model = require('../director-project.js');
-const baseline = require('../scenes.js');
+const baseline = require('./fixtures/legacy-story.cjs');
 const project = () => model.fromStory(baseline);
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
@@ -279,4 +279,12 @@ test('invalid or oversized data fails before a database write and bad media neve
     await assert.rejects(storage.putMedia(item),/Недопустимый|Описание/);
   }
   assert.equal(h.state.opens.length,0);
+});
+
+test('a story namespace chooses its own database while the legacy project keeps the original name', async () => {
+  const h = indexedDBHarness();
+  await storageModule.create({ indexedDB: h.indexedDB, namespace: 'first-page-pilot-v1' }).load();
+  await storageModule.create({ indexedDB: h.indexedDB }).load();
+  assert.deepEqual(h.state.opens.map(item => item.name), ['alley-director-v1-first-page-pilot-v1', 'alley-director-v1']);
+  assert.throws(() => storageModule.create({ namespace: '../invalid' }), /имя/);
 });
