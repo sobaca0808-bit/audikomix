@@ -508,8 +508,14 @@
       const parameter = this._master?.gain;
       if (parameter && this.context?.state !== 'closed') {
         const now = this.context.currentTime;
-        parameter.cancelScheduledValues(now);
-        parameter.setValueAtTime(this.getMasterState().effectiveVolume, now);
+        const target = this.getMasterState().effectiveVolume;
+        if (target > 0 && typeof parameter.cancelAndHoldAtTime === 'function') {
+          parameter.cancelAndHoldAtTime(now);
+          parameter.linearRampToValueAtTime(target, now + .022);
+        } else {
+          parameter.cancelScheduledValues(now);
+          parameter.setValueAtTime(target, now);
+        }
       }
       // Gain changes deliberately leave sources, scene time and status callbacks alone.
       return this.getMasterState();

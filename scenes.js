@@ -687,8 +687,8 @@
   };
   const jazzGain = { alley: .10, hero: .53, dasha: .12, revelation: .49,
     panorama: .56, whispers: .43, valentin: .10, friends: .075, intruders: .04 };
-  const roomGain = { hero: .34, revelation: .33, panorama: .45, whispers: .24,
-    valentin: .16, friends: .12, intruders: .06 };
+  const roomGain = { hero: .55, revelation: .52, panorama: .62, whispers: .40,
+    valentin: .30, friends: .25, intruders: .12 };
   // Scene-local milliseconds. Keep event timing separate from dialogue.
   const cues = {
     alley: [[3800, 'pavement', .13], [4390, 'pavement', .10]],
@@ -707,7 +707,7 @@
   const scenes = source.map(input => {
     const scene = timeline.buildScene(input);
     if (scene.id === 'alley' || scene.id === 'dasha') {
-      scene.audio.beds.push({ id: 'rain', gain: scene.id === 'alley' ? .65 : .48 });
+      scene.audio.beds.push({ id: 'rain', gain: scene.id === 'alley' ? .78 : .66 });
     }
     if (roomGain[scene.id]) scene.audio.beds.push({ id: 'room', gain: roomGain[scene.id] });
     if (jazzGain[scene.id]) {
@@ -720,17 +720,17 @@
     if (scene.id === 'invitation') {
       scene.audio.tracks = [{
         id: 'jazz-finale', kind: 'music', src: 'assets/audio/lobby-time-finale.ogg',
-        start: scene.duration - 8100, gain: .23, loop: false
+        start: scene.duration - 8100, gain: .55, loop: false
       }];
     }
     scene.audio.effects = (cues[scene.id] || []).map(([at, effect, gain]) => ({
-      src: 'assets/audio/' + effects[effect], at, gain
+      src: 'assets/audio/' + effects[effect], at, gain: Math.sqrt(gain) * .82
     }));
     return scene;
   });
   const audio = {
     crossfade: 2000,
-    volumes: { voice: 1, ambience: .35, music: .2, effects: .3 },
+    volumes: { voice: 1, ambience: .78, music: .27, effects: .84 },
     duck: { ambience: .3, music: .2, effects: .4, attack: 400, release: 800 },
     beds: {
       rain: { src: 'assets/audio/calpo_rain.ogg', channel: 'ambience', loop: false },
