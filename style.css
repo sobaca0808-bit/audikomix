@@ -409,3 +409,59 @@ body.viewer-expanded { overflow: hidden; }
   button { transition: none; }
   .caption-enter #speaker, .caption-enter #dialogue { animation: none; }
 }
+
+/* Cinema fullscreen only: the photo owns the viewport; controls float above it. */
+.player:is(:fullscreen, .is-expanded) {
+  --fullscreen-reserved: 0px;
+  --cinema-controls-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  display: block; overflow: hidden; padding: 0; background: #0b100f;
+}
+.player:is(:fullscreen, .is-expanded) .screen {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+}
+.player:is(:fullscreen, .is-expanded) .visual {
+  width: min(100%, calc(100dvh * 16 / 9)); margin: 0;
+}
+.player:is(:fullscreen, .is-expanded) .caption {
+  position: absolute; z-index: 5; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(var(--cinema-controls-bottom), calc((100dvh - min(100dvh, 100vw * 9 / 16)) / 2 + 8px)); height: auto; min-height: 0;
+  max-height: min(30dvh, calc(100vw * 9 / 16 - 16px), calc(130px * var(--subtitle-scale, 1)));
+  padding: 8px 16px; border: 0; border-radius: 4px;
+  background: #0b100fc9; box-shadow: none;
+}
+.player:is(:fullscreen, .is-expanded) .caption.is-empty { background: transparent; }
+.player:is(:fullscreen, .is-expanded) .caption p { margin-block: 3px; }
+.player:is(:fullscreen, .is-expanded) #dialogue { font-size: calc(clamp(16px, 2.1vw, 23px) * var(--subtitle-scale, 1)); line-height: 1.3; }
+.player:is(:fullscreen, .is-expanded) .toolbar {
+  position: absolute; z-index: 6; top: env(safe-area-inset-top, 0px); left: 0; right: 0;
+  min-height: 44px; padding: 6px max(12px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(#0b100fe6, #0b100f70); flex-wrap: nowrap;
+}
+.player:is(:fullscreen, .is-expanded) .story-mark { display: none; }
+.player:is(:fullscreen, .is-expanded) .toolbar #director-toggle { display: block; flex: 0 1 auto; order: initial; min-height: 44px; margin-left: auto; font-size: 11px; padding: 6px 10px; }
+.player:is(:fullscreen, .is-expanded) .control-deck {
+  position: absolute; z-index: 6; bottom: env(safe-area-inset-bottom, 0px); left: 0; right: 0;
+  width: 100%; min-height: 60px; padding: 8px max(12px, env(safe-area-inset-right, 0px)); gap: 12px;
+  flex-wrap: nowrap; background: #0b100fc9;
+}
+.player:is(:fullscreen, .is-expanded) .controls { flex: 1 1 300px; max-width: 510px; gap: 6px; }
+.player:is(:fullscreen, .is-expanded) .controls button { min-height: 44px; height: 44px; padding: 5px; font-size: 12px; }
+.player:is(:fullscreen, .is-expanded) .viewer-tools { flex: none; width: auto; gap: 8px; }
+.player:is(:fullscreen, .is-expanded) #master-volume { width: 70px; }
+.player:is(:fullscreen, .is-expanded) #fullscreen { width: 44px; min-width: 44px; height: 44px; padding: 8px; }
+.player:is(:fullscreen, .is-expanded) #fullscreen-label { display: none; }
+.player:is(:fullscreen, .is-expanded) :is(.subtitle-tools, .details, .progress, .audio-panel, .picture-panel) { display: none; }
+.player:is(:fullscreen, .is-expanded) #viewer-status:not(.sr-only) {
+  position: absolute; z-index: 7; top: calc(60px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px;
+  height: auto; min-height: 0; max-height: 48px; margin: 0; padding: 4px 8px; text-align: center;
+  background: #0b100fc9; pointer-events: none;
+}
+.player:is(:fullscreen, .is-expanded) #viewer-status:empty { display: none; }
+.player:is(:fullscreen, .is-expanded)[data-cinema-controls=hidden] :is(.toolbar, .control-deck) { opacity: 0; visibility: hidden; pointer-events: none; }
+.player:is(:fullscreen, .is-expanded)[data-cinema-controls=hidden] .caption { bottom: max(calc(12px + env(safe-area-inset-bottom, 0px)), calc((100dvh - min(100dvh, 100vw * 9 / 16)) / 2 + 8px)); }
+@media (max-width: 550px) and (orientation: portrait) {
+  .player:is(:fullscreen, .is-expanded) { --cinema-controls-bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
+  .player:is(:fullscreen, .is-expanded) .control-deck { flex-wrap: wrap; gap: 6px; }
+  .player:is(:fullscreen, .is-expanded) .controls { flex: 0 0 100%; }
+  .player:is(:fullscreen, .is-expanded) .viewer-tools { width: 100%; justify-content: space-between; }
+}
