@@ -685,6 +685,8 @@
     paper: 'PAPRHndl_PaperCrumple_OS_01.ogg',
     glass: 'impactGlass_light_000.ogg'
   };
+  const jazzGain = { alley: .10, hero: .53, dasha: .12, revelation: .49,
+    panorama: .56, whispers: .43, valentin: .10, friends: .075, intruders: .04 };
   const roomGain = { hero: .34, revelation: .33, panorama: .45, whispers: .24,
     valentin: .16, friends: .12, intruders: .06 };
   // Scene-local milliseconds. Keep event timing separate from dialogue.
@@ -708,6 +710,19 @@
       scene.audio.beds.push({ id: 'rain', gain: scene.id === 'alley' ? .65 : .48 });
     }
     if (roomGain[scene.id]) scene.audio.beds.push({ id: 'room', gain: roomGain[scene.id] });
+    if (jazzGain[scene.id]) {
+      const jazz = { id: 'jazz', gain: jazzGain[scene.id] };
+      if (scene.id === 'whispers') {
+        jazz.gainPoints = [{ at: 5000, gain: .43 }, { at: 22000, gain: .10 }];
+      }
+      scene.audio.beds.push(jazz);
+    }
+    if (scene.id === 'invitation') {
+      scene.audio.tracks = [{
+        id: 'jazz-finale', kind: 'music', src: 'assets/audio/lobby-time-finale.ogg',
+        start: scene.duration - 8100, gain: .23, loop: false
+      }];
+    }
     scene.audio.effects = (cues[scene.id] || []).map(([at, effect, gain]) => ({
       src: 'assets/audio/' + effects[effect], at, gain
     }));
@@ -720,7 +735,7 @@
     beds: {
       rain: { src: 'assets/audio/calpo_rain.ogg', channel: 'ambience', loop: false },
       room: { src: 'assets/audio/crowd.ogg', channel: 'ambience', loop: true },
-      jazz: { src: null, channel: 'music', loop: true },
+      jazz: { src: 'assets/audio/lobby-time.ogg', channel: 'music', loop: true },
       dishes: { src: null, channel: 'effects', loop: true }
     }
   };

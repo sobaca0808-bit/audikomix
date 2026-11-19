@@ -254,7 +254,7 @@
       const wanted = new Map((scene.audio?.beds || []).map(bed => [bed.id, bed]));
       for (const [id, track] of this._beds) {
         const next = wanted.get(id);
-        track.fade = { from: this._fadeValue(track, this._elapsed), to: next ? clamp(next.gain ?? 1) : 0, start: elapsed, duration: fadeDuration };
+        track.fade = { from: this._fadeValue(track, this._elapsed), to: next ? clamp(next.gain ?? 1) : 0, start: elapsed, duration: fadeDuration, points: next?.gainPoints };
       }
       for (const [id, bed] of wanted) {
         if (this._beds.has(id)) continue;
@@ -266,15 +266,24 @@
         gain.connect(this._channels[channel].duck);
         const target = clamp(bed.gain ?? 1);
         const track = { id, buffer, gain, channel, loop: definition.loop !== false, offset: 0, record: null,
-          fade: { from: fadeDuration ? 0 : target, to: target, start: elapsed, duration: fadeDuration } };
+          fade: { from: fadeDuration ? 0 : target, to: target, start: elapsed, duration: fadeDuration, points: bed.gainPoints } };
         this._beds.set(id, track);
       }
     }
 
     _fadeValue(track, elapsed) {
       const fade = track.fade;
-      const progress = fade.duration ? clamp((elapsed - fade.start) / fade.duration) : 1;
-      return fade.from + (fade.to - fade.from) * progress;
+      const fadeEnd = fade.start + fade.duration;
+      if (elapsed < fadeEnd) return fade.from + (fade.to - fade.from) * clamp((elapsed - fade.start) / fade.duration);
+      let value = fade.to;
+      let at = fadeEnd;
+      for (const point of fade.points || []) {
+        if (point.at <= fadeEnd) continue;
+        if (elapsed < point.at) return value + (point.gain - value) * (elapsed - at) / (point.at - at);
+        value = point.gain;
+        at = point.at;
+      }
+      return value;
     }
 
     _scheduleFade(track, elapsed) {
@@ -282,8 +291,13 @@
       const parameter = track.gain.gain;
       parameter.cancelScheduledValues(now);
       parameter.setValueAtTime(this._fadeValue(track, elapsed), now);
-      const remaining = track.fade.start + track.fade.duration - elapsed;
-      if (remaining > 0) parameter.linearRampToValueAtTime(track.fade.to, now + remaining / 1000);
+      const fadeEnd = track.fade.start + track.fade.duration;
+      if (fadeEnd > elapsed) parameter.linearRampToValueAtTime(track.fade.to, now + (fadeEnd - elapsed) / 1000);
+      for (const point of track.fade.points || []) {
+        if (point.at > Math.max(elapsed, fadeEnd)) {
+          parameter.linearRampToValueAtTime(point.gain, now + (point.at - elapsed) / 1000);
+        }
+      }
     }
 
     _voiceRanges(scene) {

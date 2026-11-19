@@ -26,6 +26,13 @@ SHA-256: `f244cb49c82787dd2a4f6a28a97a419ab29532bb6aebf46c331be657672da5b0`.
 
 Получено из публичных репозиториев GitHub 19.11.2026.
 
+## Музыка
+
+**Lobby Time** — Kevin MacLeod (incompetech.com), ISRC USUAN1600054. [Карточка автора](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600054), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Копирование, распространение и адаптация с указанием автора, лицензии и изменений. Исходный [атрибутированный OGG в rexclaw](https://github.com/Codemarchant/rexclaw/blob/67c58e4372fe46e105e9bd5a843815be55441799/assets/avatars/Ara/music-lobby-time.ogg), [атрибуция поставщика](https://github.com/Codemarchant/rexclaw/blob/67c58e4372fe46e105e9bd5a843815be55441799/README.md), получен 19.11.2026.
+
+- `lobby-time.ogg` — версия для зацикливания, конец и начало сведены двухсекундным кроссфейдом и перекодированы в Vorbis.
+- `lobby-time-finale.ogg` — последние восемь секунд исходной записи, добавлены плавные вход и выход, перекодировано в Vorbis.
+
 ## Кандидаты: страницы проверены, оригиналы не получены и не прослушаны
 
 | Задача | Название / автор | Источник | Лицензия на странице | Условия и нерешённые вопросы |

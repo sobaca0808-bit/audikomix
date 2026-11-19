@@ -76,11 +76,11 @@ test('sound plan has relative voice/music/ambience/sfx windows alongside local b
   const kinds = new Set();
   assert.equal(story.audio.beds.rain.src, 'assets/audio/calpo_rain.ogg');
   assert.ok(fs.existsSync(path.join(root, story.audio.beds.rain.src)));
-  assert.ok(Object.entries(story.audio.beds).filter(([id]) => !['rain', 'room'].includes(id)).every(([, bed]) => bed.src === null));
+  assert.ok(Object.entries(story.audio.beds).filter(([id]) => !['rain', 'room', 'jazz'].includes(id)).every(([, bed]) => bed.src === null));
   for (const scene of story.scenes) {
     assert.equal(scene.audio.voice, null);
     const bedIds = scene.audio.beds.map(bed => bed.id);
-    assert.deepEqual(bedIds, ['alley', 'dasha'].includes(scene.id) ? ['rain'] : scene.id === 'invitation' ? [] : ['room']);
+    assert.deepEqual(bedIds, ['alley', 'dasha'].includes(scene.id) ? ['rain', 'jazz'] : scene.id === 'invitation' ? [] : ['room', 'jazz']);
     for (const id of bedIds) assert.ok(fs.existsSync(path.join(root, story.audio.beds[id].src)));
     for (const effect of scene.audio.effects) {
       assert.ok(fs.existsSync(path.join(root, effect.src)));
