@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const renderer = require('../caption-renderer.js');
 
-function harness() {
+function harness(options = {}) {
   let created = 0;
   class Element {
     constructor(name) {
@@ -39,7 +39,7 @@ function harness() {
     createDocumentFragment() { return new Element('#fragment'); }
   };
   const element = new Element('p'); element.ownerDocument = document;
-  const controller = renderer.create({ document, element });
+  const controller = renderer.create({ document, element, ...options });
   return { document, element, controller, get created() { return created; } };
 }
 
@@ -153,4 +153,19 @@ test('a long complete paragraph uses a fragment rather than spreading arguments'
   assert.equal(h.element.children.length, fullText.length);
   assert.equal(h.element.textContent, fullText);
   assert.equal(h.element.replacements, 1);
+});
+
+test('cinema follows the revealed glyph vertically, while paused/comic renders preserve manual scroll', () => {
+  const panel = { scrollTop: 100, clientHeight: 80, getBoundingClientRect: () => ({ top: 10, bottom: 90 }) };
+  const h = harness({ scrollContainer: panel });
+  h.controller.render({ fullText: 'Длинная реплика', visibleText: '', autoScroll: true });
+  assert.equal(panel.scrollTop, 0);
+  h.element.children[0].getBoundingClientRect = () => ({ bottom: 120 });
+  h.controller.render({ fullText: 'Длинная реплика', visibleText: 'Д', autoScroll: true });
+  assert.equal(panel.scrollTop, 36);
+  panel.scrollTop = 7;
+  h.controller.render({ fullText: 'Длинная реплика', visibleText: 'Д', autoScroll: true });
+  assert.equal(panel.scrollTop, 7, 'the same paused prefix must not force scrolling');
+  h.controller.render({ fullText: 'Новая полная реплика', visibleText: 'Новая полная реплика', autoScroll: false });
+  assert.equal(panel.scrollTop, 7, 'manual Comic scrolling belongs to the reader');
 });

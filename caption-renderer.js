@@ -8,6 +8,7 @@
   function create(options = {}) {
     const element = options.element;
     const document = options.document || element?.ownerDocument || root.document;
+    const scrollContainer = options.scrollContainer;
     if (!element || !element.style || typeof element.replaceChildren !== 'function'
       || !document || typeof document.createElement !== 'function'
       || typeof document.createDocumentFragment !== 'function') {
@@ -57,7 +58,10 @@
 
     function render(input = {}) {
       const text = typeof input.fullText === 'string' ? input.fullText : '';
-      if (text !== fullText) rebuild(text);
+      if (text !== fullText) {
+        rebuild(text);
+        if (input.autoScroll && scrollContainer) scrollContainer.scrollTop = 0;
+      }
       const candidate = typeof input.visibleText === 'string' ? input.visibleText : '';
       let count = 0;
       // Accept complete code points only. A half-surrogate prefix must not
@@ -68,8 +72,15 @@
         spans[index].style.visibility = visible ? 'visible' : 'hidden';
         spans[index].setAttribute('data-revealed', String(visible));
       }
+      const changed = revealed !== count;
       revealed = count;
       rememberVisible(count ? candidate : '');
+      if (input.autoScroll && changed && count && scrollContainer?.getBoundingClientRect && spans[count - 1]?.getBoundingClientRect) {
+        const glyph = spans[count - 1].getBoundingClientRect();
+        const box = scrollContainer.getBoundingClientRect();
+        const bottom = box.top + scrollContainer.clientHeight - 6;
+        if (glyph.bottom > bottom) scrollContainer.scrollTop += glyph.bottom - bottom;
+      }
       return visibleText;
     }
 

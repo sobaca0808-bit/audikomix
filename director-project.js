@@ -46,9 +46,9 @@
     return value;
   }
   function baselineScenes(baseline) {
-    if (!baseline || !Array.isArray(baseline.scenes) || baseline.scenes.length !== 5) fail('Исходная история должна содержать пять сцен.');
+    if (!baseline || !Array.isArray(baseline.scenes) || !baseline.scenes.length || baseline.scenes.length > 50) fail('Исходная история должна содержать от одной до 50 сцен.');
     const ids = baseline.scenes.map(scene => id(scene.id, 'Исходная сцена'));
-    if (new Set(ids).size !== 5) fail('Идентификаторы исходных сцен повторяются.');
+    if (new Set(ids).size !== ids.length) fail('Идентификаторы исходных сцен повторяются.');
     return baseline.scenes;
   }
   function metadata(raw) {
@@ -69,7 +69,7 @@
     if (!serialized || bytes(serialized) > LIMITS.jsonBytes) fail('Проект JSON превышает 1 МБ.');
     record(input, ['format', 'version', 'title', 'scenes', 'media'], 'Проект');
     if (input.format !== 'alley-director' || input.version !== 1) fail('Формат или версия проекта не поддерживается.');
-    if (!Array.isArray(input.scenes) || input.scenes.length !== source.length) fail('В проекте должны остаться все пять существующих сцен.');
+    if (!Array.isArray(input.scenes) || input.scenes.length !== source.length) fail('В проекте должны остаться все ' + source.length + ' существующих сцен.');
     if (!Array.isArray(input.media) || input.media.length > source.length * LIMITS.tracks) fail('Слишком много аудиофайлов в проекте.');
     const media = input.media.map(metadata);
     const mediaMap = new Map(media.map(item => [item.id, item]));
@@ -138,7 +138,7 @@
         camera: { start, end, focusX: match ? Number(match[1]) : 50, focusY: match ? Number(match[2]) : 50 },
         effects: { smoke: 0, flicker: 0 }, tracks: [] };
     });
-    return validate({ format: 'alley-director', version: 1, title: 'Переулок', scenes, media: [] }, baseline);
+    return validate({ format: 'alley-director', version: 1, title: baseline.title || 'Переулок', scenes, media: [] }, baseline);
   }
 
   function compile(input, baseline) {
@@ -187,9 +187,16 @@
           }
         }
       }
+      if (scene.endCard) {
+        const tail = scene.endCard.pauseMs + scene.endCard.fadeMs + scene.endCard.holdMs;
+        const lastCaptionEnd = scene.phrases?.at(-1)?.end || 0;
+        const lastVoiceEnd = Math.max(0, ...settings.tracks.filter(track => track.kind === 'voice')
+          .map(track => track.startMs + media.get(track.assetId).durationMs));
+        scene.duration = Math.max(scene.duration, Math.max(lastCaptionEnd, lastVoiceEnd) + tail);
+      }
       return scene;
     });
-    return { audio: clone(baseline.audio), scenes };
+    return { ...clone(baseline), title: project.title, audio: clone(baseline.audio), scenes };
   }
 
   return { LIMITS, clone, fromStory, validate, compile, validateMedia: metadata };

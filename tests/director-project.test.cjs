@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const model = require('../director-project.js');
-const baseline = JSON.parse(JSON.stringify(require('../scenes.js')));
+const baseline = JSON.parse(JSON.stringify(require('./fixtures/legacy-story.cjs')));
 const copy = value => JSON.parse(JSON.stringify(value));
 const fresh = () => model.fromStory(baseline);
 const media = (id = 'voice-one', durationMs = 40000) => ({ id, name: 'Запись.wav', type: 'audio/wav', size: 80, durationMs });

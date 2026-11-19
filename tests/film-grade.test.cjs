@@ -39,9 +39,9 @@ test('CommonJS and browser exports expose the same profiles and controller API',
   const sandbox = { window: {} };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../film-grade.js'), 'utf8'), sandbox);
   assert.equal(typeof sandbox.window.AlleyFilmGrade.create, 'function');
-  assert.deepEqual(Object.keys(grade.profiles), ['alley', 'panorama', 'hero', 'dasha', 'revelation']);
+  assert.deepEqual(Object.keys(grade.profiles), ['alley', 'hero', 'dasha', 'revelation', 'panorama', 'whispers', 'valentin', 'friends', 'intruders', 'invitation']);
   assert.deepEqual(Object.keys(sandbox.window.AlleyFilmGrade.profiles), Object.keys(grade.profiles));
-  assert.equal(grade.profiles.hero.filename, 'Сепия-нуар в баре с джазом.png');
+  assert.equal(grade.profiles.hero.filename, 'scene-02.webp');
   assert.ok(Object.isFrozen(grade.profiles));
   assert.ok(Object.isFrozen(grade.profiles.hero.R));
 });
@@ -84,10 +84,10 @@ test('default cinema preserves authored sepia with identity sRGB curves and no e
   assert.notEqual(svg.style.display, 'none');
 });
 
-test('profiles follow all five approved photographs without re-toning their ready sepia', () => {
+test('profiles follow all ten approved photographs without re-toning their ready sepia', () => {
   const h = documentHarness(), controller = grade.create({ document: h.document });
   const scenes = require('../scenes.js').scenes;
-  assert.equal(scenes.length, 5);
+  assert.equal(scenes.length, 10);
   for (const scene of scenes) {
     const profile = grade.profiles[scene.id];
     assert.equal(profile.filename, scene.image.slice('assets/'.length));

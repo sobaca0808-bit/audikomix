@@ -11,17 +11,22 @@
   const LIMITS = { brightness: [70, 130], contrast: [70, 130], saturation: [0, 150] };
   const instances = new WeakMap();
 
-  // Пять утверждённых исходников уже сведены автором в сепию.
+  // Десять утверждённых исходников уже сведены автором в сепию.
   // Нейтральные кривые сохраняют их цвет, свет, контраст и готовое зерно.
   // Индивидуальные профили привязаны к файлам: при новой замене проверяем их заново.
   const identity = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1];
   const authored = filename => ({ filename, saturation: 1, R: [...identity], G: [...identity], B: [...identity], grain: 0 });
   const profiles = {
-    alley: authored('Дождливый переулок у бара «Переулок».png'),
-    panorama: authored('Сепийный джаз-бар «Переулок».png'),
-    hero: authored('Сепия-нуар в баре с джазом.png'),
-    dasha: authored('Газетчица у старого бара.png'),
-    revelation: authored('Газетный заголовок в переулке.png')
+    alley: authored('scene-01.webp'),
+    hero: authored('scene-02.webp'),
+    dasha: authored('scene-03.webp'),
+    revelation: authored('scene-04.webp'),
+    panorama: authored('scene-05.webp'),
+    whispers: authored('scene-06.webp'),
+    valentin: authored('scene-07.webp'),
+    friends: authored('scene-08.webp'),
+    intruders: authored('scene-09.webp'),
+    invitation: authored('scene-10.webp')
   };
   Object.values(profiles).forEach(profile => {
     ['R', 'G', 'B'].forEach(channel => Object.freeze(profile[channel]));

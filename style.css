@@ -160,7 +160,8 @@ button svg { display: block; width: 20px; height: 20px; flex: none; }
   height: 100%;
   max-width: 100%;
   max-height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  scale: calc(1 / var(--frame-max-scale, 1));
   transform-origin: center;
   will-change: transform;
 }
@@ -179,6 +180,9 @@ button svg { display: block; width: 20px; height: 20px; flex: none; }
 }
 .screen-label span { margin-left: 18px; opacity: .65; }
 .alley-frame.image-only .screen-label { visibility: hidden; }
+.end-card { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 20px; pointer-events: none; }
+.end-card[hidden] { display: none; }
+.end-card p { max-width: 90%; margin: 0; color: #e5d2a5; font: normal clamp(15px, 2.5vw, 34px)/1.5 Georgia, 'Times New Roman', serif; letter-spacing: .14em; text-align: center; text-wrap: balance; }
 .caption {
   position: relative;
   z-index: 1;

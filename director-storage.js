@@ -18,6 +18,8 @@
   function validId(value) { return typeof value === 'string' && /^[A-Za-z0-9_-]{1,96}$/.test(value); }
 
   function create(options = {}) {
+    if (options.namespace !== undefined && !validId(options.namespace)) throw new TypeError('Недопустимое имя локального проекта.');
+    const databaseName = options.namespace ? DB_NAME + '-' + options.namespace : DB_NAME;
     let indexedDB, accessError = null;
     // Some sandboxed/private contexts throw while reading the property itself.
     // Keep the editor constructible so its draft and export remain available.
@@ -34,7 +36,7 @@
           if (settled) return;
           settled = true; connection = null; reject(storageError(error, message));
         }
-        try { request = indexedDB.open(DB_NAME, DB_VERSION); }
+        try { request = indexedDB.open(databaseName, DB_VERSION); }
         catch (error) { fail(error); return; }
         request.onupgradeneeded = () => {
           const database = request.result;
