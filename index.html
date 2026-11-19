@@ -24,6 +24,7 @@
   <script src="cinema-fullscreen.js" defer></script>
   <script src="viewer-controls.js" defer></script>
   <script src="director-project.js" defer></script>
+  <script src="director-publication.js" defer></script>
   <script src="director-storage.js" defer></script>
   <script src="caption-renderer.js" defer></script>
   <script src="director-effects.js" defer></script>
@@ -55,7 +56,7 @@
       <div class="details"><span id="counter"></span><span id="status" role="status"></span></div>
       <div class="audio-panel">
         <p id="audio-status" role="status">Звук будет проверен после нажатия «Начать». Запись голоса и фоновые звуки добавляются отдельно.</p>
-        <details><summary>Громкость дорожек</summary><div class="volume-controls">
+        <details id="track-volume-controls"><summary>Громкость дорожек</summary><div class="volume-controls">
           <label>Голос <input id="volume-voice" type="range" min="0" max="1" step="0.01" value="1"></label>
           <label>Атмосфера <input id="volume-ambience" type="range" min="0" max="1" step="0.01" value="0.35"></label>
           <label>Музыка <input id="volume-music" type="range" min="0" max="1" step="0.01" value="0.2"></label>

@@ -1,4 +1,5 @@
 let story = window.AlleyStory;
+let publicationLoading = false;
 let frames = story.scenes;
 let mediaResolver = null;
 let current = 0;
@@ -368,6 +369,7 @@ function setMode(value) {
 }
 
 async function startPlayback() {
+  if (publicationLoading) return;
   if (playing || starting) {
     pausePlayback();
     return;
@@ -409,7 +411,16 @@ element('comic').addEventListener('click', () => setMode('comic'));
 for (const [channel, volume] of Object.entries(story.audio.volumes)) {
   const input = element('volume-' + channel);
   input.value = String(volume);
-  input.addEventListener('input', () => audio.setVolume(channel, Number(input.value)));
+  input.addEventListener('input', () => {
+    if (element('track-volume-controls')?.hidden) return;
+    const value = Number(input.value);
+    try {
+      window.AlleyDirectorInstance?.setChannelVolume(channel, value);
+      audio.setVolume(channel, value);
+    } catch (_) {
+      input.value = String(audio.config.volumes[channel]);
+    }
+  });
 }
 if (filmGrade) {
   const pictureFields = ['brightness', 'contrast', 'saturation'];
@@ -468,6 +479,10 @@ function applyStory(nextStory, options = {}) {
   story = nextStory;
   frames = nextStory.scenes;
   audio.reconfigure(story.audio, { resolveMedia: mediaResolver });
+  for (const [channel, value] of Object.entries(story.audio.volumes)) {
+    audio.setVolume(channel, value);
+    element('volume-' + channel).value = String(value);
+  }
   silentAudioInterrupted = false;
   current = Math.max(0, frames.findIndex(frame => frame.id === selectedId));
   mode = options.mode === 'comic' || options.mode === 'cinema' ? options.mode : mode;
@@ -494,13 +509,39 @@ window.AlleyPlayer = {
   }
 };
 
+async function initializeDirector() {
+  const baseline = window.AlleyStory;
+  const params = new URLSearchParams(window.location?.search || '');
+  const author = params.get('director') === '1' && params.get('view') !== '1';
+  let published = null;
+  if (window.AlleyDirectorPublication && typeof window.fetch === 'function') {
+    publicationLoading = true;
+    element('start').disabled = true;
+    try {
+      published = await window.AlleyDirectorPublication.load({
+        fetch: window.fetch.bind(window), baseline, model: window.AlleyDirectorProject
+      });
+      if (published && !author) {
+        element('track-volume-controls').hidden = true;
+        const state = window.AlleyPlayer.getState();
+        applyStory(published, { sceneId: state.interactionVersion ? state.sceneId : published.scenes[0].id });
+      }
+    } finally {
+      publicationLoading = false;
+      element('start').disabled = false;
+    }
+  }
+  if ((published && !author) || params.get('view') === '1') return;
+  const storage = window.AlleyDirectorStorage.create(baseline.storageKey ? { namespace: baseline.storageKey } : {});
+  window.AlleyDirectorInstance = await window.AlleyDirector.create({
+    document, window, baseline, model: window.AlleyDirectorProject, storage, player: window.AlleyPlayer
+  });
+  playerLayout?.refresh();
+}
+
 if (window.AlleyDirector && window.AlleyDirectorProject && window.AlleyDirectorStorage) {
-  const storage = window.AlleyDirectorStorage.create(story.storageKey ? { namespace: story.storageKey } : {});
-  window.AlleyDirector.create({ document, window, baseline: window.AlleyStory,
-    model: window.AlleyDirectorProject, storage, player: window.AlleyPlayer })
-    .then(controller => { window.AlleyDirectorInstance = controller; playerLayout?.refresh(); })
-    .catch(() => {
-      const status = element('viewer-status');
-      if (status) status.textContent = 'Редактор не загрузился. Просмотр комикса доступен; исходная история сохранена.';
-    });
+  initializeDirector().catch(() => {
+    const status = element('viewer-status');
+    if (status) status.textContent = 'Редактор не загрузился. Просмотр комикса доступен.';
+  });
 }
