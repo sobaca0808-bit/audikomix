@@ -1,0 +1,102 @@
+/* Normal-window fitting. Native fullscreen and the existing expanded viewer keep
+   their own layout rules. Secondary settings stay reachable below the film. */
+html.player-fit-ready:not(:has(.player:fullscreen)):not(:has(.player.is-expanded)) { scrollbar-gutter: stable; }
+.player-fit-ready main { padding-top: 14px; }
+.player-fit-ready main > header { gap: 16px; padding-bottom: 8px; }
+.player-fit-ready .brand { font-size: 13px; }
+.player-fit-ready .brand span { margin-top: 2px; font-size: 7px; }
+.player-fit-ready .intro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 4px 24px;
+  padding: 10px 0 14px;
+}
+.player-fit-ready .eyebrow { grid-column: 1; margin: 0; font-size: 9px; }
+.player-fit-ready h1 { grid-column: 1; font-size: clamp(40px, 4.5vw, 58px); }
+.player-fit-ready .intro > p:not(.eyebrow) { grid-column: 2; grid-row: 2; margin: 0 0 4px; font-size: 12px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) {
+  width: min(100%, var(--fit-card-width, 100%));
+  margin-inline: auto;
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .visual {
+  width: min(100%, var(--fit-image-width, 100%));
+  margin-inline: auto;
+  aspect-ratio: 16 / 9;
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .screen img {
+  object-fit: contain;
+  scale: calc(1 / var(--frame-max-scale, 1));
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .toolbar {
+  flex-wrap: nowrap;
+  min-height: 49px;
+  gap: 8px;
+  padding: 4px 10px;
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .story-mark { display: none; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .modes button { min-height: 36px; padding: 6px 12px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .toolbar #director-toggle {
+  flex: 0 1 auto;
+  order: initial;
+  min-height: 40px;
+  padding: 6px 9px;
+  font-size: 11px;
+  white-space: normal;
+  line-height: 1.15;
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .caption {
+  height: calc(clamp(104px, 14vh, 136px) * var(--subtitle-scale, 1));
+  min-height: calc(clamp(104px, 14vh, 136px) * var(--subtitle-scale, 1));
+  max-height: calc(clamp(104px, 14vh, 136px) * var(--subtitle-scale, 1));
+  padding: 10px 16px 12px;
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .caption p { margin-block: 4px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .control-deck {
+  flex-wrap: nowrap;
+  gap: 12px;
+  padding: 10px 12px 8px;
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .controls {
+  flex: 1 1 280px;
+  width: auto;
+  min-width: 0;
+  max-width: 510px;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
+}
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .controls button { height: 44px; min-height: 44px; padding: 7px 5px; font-size: 12px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .viewer-tools { width: auto; flex: none; gap: 10px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) .master-control { flex: none; gap: 7px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) #master-volume { width: 70px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) #fullscreen { width: 44px; min-width: 44px; padding: 8px; }
+.player[data-player-fit]:not(:fullscreen):not(.is-expanded) #fullscreen-label { display: none; }
+.player[data-player-fit][data-fit-narrow=true]:not(:fullscreen):not(.is-expanded) .control-deck { flex-wrap: wrap; gap: 8px; padding: 8px 10px; }
+.player[data-player-fit][data-fit-narrow=true]:not(:fullscreen):not(.is-expanded) .controls { flex: 0 0 100%; width: 100%; }
+.player[data-player-fit][data-fit-narrow=true]:not(:fullscreen):not(.is-expanded) .viewer-tools { width: 100%; justify-content: space-between; }
+.player[data-player-fit][data-fit-narrow=true]:not(:fullscreen):not(.is-expanded) #master-volume { width: 90px; }
+
+@media (max-width: 700px) {
+  .player-fit-ready main { padding-top: 10px; }
+  .player-fit-ready .intro { display: block; padding: 8px 0 10px; }
+  .player-fit-ready .eyebrow { margin-bottom: 3px; font-size: 8px; }
+  .player-fit-ready h1 { font-size: 40px; }
+  .player-fit-ready .intro > p:not(.eyebrow) { margin: 4px 0 0; font-size: 11px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .player-fit-ready main { padding: 8px 12px 12px; }
+  .player-fit-ready main > header { display: none; }
+  .player-fit-ready .intro { display: block; padding: 0 0 8px; }
+  .player-fit-ready .eyebrow, .player-fit-ready .intro > p:not(.eyebrow) { display: none; }
+  .player-fit-ready h1 { font-size: 28px; line-height: 1.05; }
+  .player[data-player-fit]:not(:fullscreen):not(.is-expanded) .toolbar { min-height: 43px; padding-block: 2px; }
+  .player[data-player-fit]:not(:fullscreen):not(.is-expanded) .caption {
+    height: calc(64px * var(--subtitle-scale, 1));
+    min-height: calc(64px * var(--subtitle-scale, 1));
+    max-height: calc(64px * var(--subtitle-scale, 1));
+    padding: 5px 12px;
+  }
+  .player[data-player-fit]:not(:fullscreen):not(.is-expanded) .caption p { margin-block: 2px; }
+  .player[data-player-fit]:not(:fullscreen):not(.is-expanded) #speaker { font-size: 8px; }
+  .player[data-player-fit]:not(:fullscreen):not(.is-expanded) #dialogue { font-size: calc(16px * var(--subtitle-scale, 1)); line-height: 1.3; }
+}

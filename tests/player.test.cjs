@@ -37,7 +37,7 @@ function player({ voiceSeconds = null, preparation = Promise.resolve(), reducedM
       classList: { toggle(name, enabled) { const before = classes.has(name); if (enabled) classes.add(name); else classes.delete(name); if (before !== Boolean(enabled)) classChanges.push({name,present:Boolean(enabled)}); }, contains: name => classes.has(name) },
       setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name]; },
       set src(value) { this.attributes.src = value; }, get src() { return this.attributes.src; },
-      appendChild(child) { this.children.push(child); }, addEventListener(name, handler) { this.handlers[name] = handler; }
+      appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, addEventListener(name, handler) { this.handlers[name] = handler; }
     };
   }
   const ids = Object.fromEntries(['frame','speaker','dialogue','accessible-dialogue','counter','back','next','start','cinema','comic','status','hint','progress','audio-status','volume-voice','volume-ambience','volume-music','volume-effects'].map(id => [id, makeElement()]));
@@ -49,6 +49,8 @@ function player({ voiceSeconds = null, preparation = Promise.resolve(), reducedM
   class FakeAudio {
     constructor(settings, { onStatus }) { audio = this; this.settings = settings; this.onStatus = onStatus; this.events = []; this.attempts = []; this.ready = false; this.blocked = blockedVoice; this.masterVolume = masterVolume; this.masterMuted = masterMuted; this.contextState = 'running'; this.preparation = preparation; }
     async prepare() { this.events.push({ type: 'prepare' }); await this.preparation; this.contextState = 'running'; this.ready = true; this.onStatus({ message: voiceSeconds ? 'Голос готов' : 'Запись ещё не добавлена. Показ без голоса.', contextState: 'running' }); }
+    reconfigure(settings, {resolveMedia} = {}) { this.settings = settings; this.resolver = resolveMedia; this.ready = false; this.playing = false; this.events.push({type:'reconfigure'}); }
+    setMediaResolver(resolveMedia) { this.resolver = resolveMedia; this.events.push({type:'resolver'}); }
     durationFor(scene) { return this.ready && voiceSeconds && scene.audio.voice ? voiceSeconds * 1000 + scene.audio.voice.start + scene.audio.voice.tail : scene.duration; }
     play(scene, elapsed, options = {}) { const attempt = { type: 'play', id: scene.id, elapsed, crossfade: Boolean(options.crossfade) }; this.attempts.push(attempt); if (this.blocked) return false; this.events.push(attempt); this.playing = true; }
     getStatus() { return { voice: this.ready && voiceSeconds ? 'ready' : 'missing', contextState: this.contextState }; }
@@ -572,4 +574,54 @@ test('Без звука hidden и pagehide всё равно приостана�
     p.advance(30000); assert.equal(p.ids.counter.textContent, 'КАДР 1 / 5');
     assert.equal(p.ids.dialogue.textContent, text); assert.equal(p.ids.frame.style.transform, camera);
   }
+});
+
+
+test('Редактор заменяет только runtime: порядок, выбранная сцена и прогресс обновляются, исходник неизменен', () => {
+  const p = player();
+  const baseline = JSON.stringify(p.window.AlleyStory);
+  const compiled = JSON.parse(baseline);
+  compiled.scenes.reverse();
+  compiled.scenes.find(scene => scene.id === 'hero').text = 'Авторский черновик';
+  p.window.AlleyPlayer.applyStory(compiled, {sceneId:'hero',mode:'comic'});
+  assert.equal(p.ids.counter.textContent,'КАДР 3 / 5');
+  assert.equal(p.ids.dialogue.textContent,'Авторский черновик');
+  assert.equal(p.ids.progress.children.length,5);
+  assert.equal(p.scheduled,0);
+  assert.equal(p.window.AlleyPlayer.getState().sceneId,'hero');
+  assert.equal(p.window.AlleyPlayer.getState().mode,'comic');
+  assert.equal(JSON.stringify(p.window.AlleyStory),baseline);
+  p.click('next');
+  assert.equal(p.window.AlleyPlayer.getState().sceneId,'panorama');
+});
+
+test('Предпросмотр режиссёра запускается с выбранной сцены и отменяет старую подготовку', async () => {
+  const task = deferred(), p = player({preparation:task.promise});
+  const pendingStart = p.click('start');
+  assert.equal(p.window.AlleyPlayer.getState().starting,true);
+  const initialVersion = p.window.AlleyPlayer.getState().interactionVersion;
+  const compiled = JSON.parse(JSON.stringify(p.window.AlleyStory));
+  p.window.AlleyPlayer.applyStory(compiled,{sceneId:'dasha',mode:'comic',elapsed:6000});
+  assert.ok(p.window.AlleyPlayer.getState().interactionVersion>initialVersion);
+  assert.equal(p.window.AlleyPlayer.getState().elapsed,6000);
+  task.resolve(); await pendingStart;
+  assert.equal(p.audio.events.some(event=>event.type==='play'),false);
+  await p.window.AlleyPlayer.preview(compiled,{sceneId:'hero'});
+  assert.equal(p.window.AlleyPlayer.getState().mode,'cinema');
+  assert.equal(p.window.AlleyPlayer.getState().sceneId,'hero');
+  assert.equal(p.audio.events.filter(event=>event.type==='play').at(-1).elapsed,0);
+  assert.equal(p.scheduled,1);
+});
+
+test('Новая реплика с эмодзи раскрывается целыми символами, смешанные говорящие читаются в Комиксе', async () => {
+  const p = player(); const compiled = JSON.parse(JSON.stringify(p.window.AlleyStory));
+  compiled.scenes[0].phrases=[{text:'А🙂Б',speaker:'ДАША',start:0,typing:3000,end:5000},{text:'Ответ',speaker:'ГЕРОЙ',start:5500,typing:1000,end:8000}];
+  p.window.AlleyPlayer.applyStory(compiled,{sceneId:'alley',mode:'cinema'});
+  await p.click('start');p.advance(1000);
+  assert.equal(p.ids.dialogue.textContent,'А');
+  p.advance(1000);assert.equal(p.ids.dialogue.textContent,'А🙂');
+  assert.equal(p.ids.speaker.textContent,'ДАША');
+  p.click('comic');
+  assert.equal(p.ids.speaker.textContent,'');
+  assert.equal(p.ids.dialogue.textContent,'ДАША: А🙂Б\n\nГЕРОЙ: Ответ');
 });
