@@ -276,6 +276,12 @@
       await checkMissing();
       return clone(saved);
     }
+    function setChannelVolume(kind, volume) {
+      requireEditable();
+      const project = model.validate({ ...draft, volumes: { ...draft.volumes, [kind]: volume } }, baseline);
+      draft.volumes = project.volumes;
+      touch();
+    }
     function exportProject() { return JSON.stringify(normalized(), null, 2); }
     async function importProject(input) {
       requireEditable();
@@ -426,15 +432,27 @@
           <p class="director-note">Правки и звук остаются в этом браузере. Исходная история не перезаписывается.</p>
           <section class="director-section"><h3>Кадр</h3><label class="director-field" for="director-scene">Выбрать сцену<select id="director-scene"></select></label><div class="director-row"><button id="director-scene-up" type="button">↑ Раньше</button><button id="director-scene-down" type="button">↓ Позже</button></div><div class="director-row"><label class="director-field">Длительность, с<input id="director-duration" type="number" min="1" max="600" step="0.1"></label><label class="director-field">Переход, мс<input id="director-transition" type="number" min="0" max="2000" step="50"></label></div></section>
           <details class="director-section" open><summary>Реплики</summary><label class="director-field" for="director-phrase">Выбрать реплику<select id="director-phrase"></select></label><div class="director-row"><button id="director-phrase-add" type="button">+ Реплика</button><button id="director-phrase-remove" type="button">Удалить реплику</button></div><fieldset id="director-phrase-fields"><label class="director-field">Кто говорит<input id="director-speaker" type="text" maxlength="80"></label><label class="director-field">Текст<textarea id="director-text" rows="4" maxlength="4000"></textarea></label><div class="director-row"><label class="director-field">Появление, с<input id="director-start" type="number" min="0" step="0.1"></label><label class="director-field">Набор, с<input id="director-typing" type="number" min="0.01" step="0.1"></label><label class="director-field">Скрыть в, с<input id="director-end" type="number" min="0.01" step="0.1"></label></div></fieldset></details>
-          <details class="director-section"><summary>Звук по дорожкам</summary><label class="director-field">Тип дорожки<select id="director-upload-kind"><option value="voice">Голос</option><option value="music">Музыка</option><option value="ambience">Атмосфера</option><option value="effects">Эффект</option></select></label><label class="director-field director-file-label">Добавить локальный аудиофайл<input id="director-upload" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.webm,.opus"></label><p class="director-note">До 32 МБ на файл. Голос звучит целиком, без обрезания; кадр при необходимости станет длиннее.</p><div class="director-row"><label class="director-field">Из файлов проекта<select id="director-library"></select></label><button id="director-track-add" type="button">+ Дорожка</button></div><div id="director-tracks"></div></details>
+          <details class="director-section"><summary>Звук по дорожкам</summary><div id="director-mix"></div><label class="director-field">Тип дорожки<select id="director-upload-kind"><option value="voice">Голос</option><option value="music">Музыка</option><option value="ambience">Атмосфера</option><option value="effects">Эффект</option></select></label><label class="director-field director-file-label">Добавить локальный аудиофайл<input id="director-upload" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.webm,.opus"></label><p class="director-note">До 32 МБ на файл. Голос звучит целиком, без обрезания; кадр при необходимости станет длиннее.</p><div class="director-row"><label class="director-field">Из файлов проекта<select id="director-library"></select></label><button id="director-track-add" type="button">+ Дорожка</button></div><div id="director-tracks"></div></details>
           <details class="director-section"><summary>Камера и эффекты</summary><div class="director-row"><label class="director-field">Масштаб в начале, %<input id="director-camera-start" type="number" min="100" max="104" step="0.1"></label><label class="director-field">В конце, %<input id="director-camera-end" type="number" min="100" max="104" step="0.1"></label></div><div class="director-row"><label class="director-field">Центр по горизонтали, %<input id="director-focus-x" type="number" min="0" max="100" step="1"></label><label class="director-field">По вертикали, %<input id="director-focus-y" type="number" min="0" max="100" step="1"></label></div><label class="director-field">Дым, %<input id="director-smoke" type="range" min="0" max="100" step="1"><output id="director-smoke-value"></output></label><label class="director-field">Мягкое мерцание, %<input id="director-flicker" type="range" min="0" max="100" step="1"><output id="director-flicker-value"></output></label></details>
-          <details class="director-section"><summary>Перенос проекта</summary><div class="director-row"><button id="director-export" type="button">Экспорт JSON</button><label class="director-field director-file-label">Импорт JSON<input id="director-import" type="file" accept="application/json,.json"></label></div><p class="director-note">JSON хранит настройки. Скачайте аудио отдельно кнопками ниже и перенесите вместе с JSON; после импорта выберите эти файлы для восстановления связи.</p><div id="director-media" class="director-media-list"></div></details>
+          <details class="director-section"><summary>Перенос проекта</summary><div class="director-row"><button id="director-export" type="button">Экспорт JSON</button><input id="director-import" type="file" accept="application/json,.json" hidden><button id="director-import-button" type="button">Импорт JSON</button></div><p class="director-note">JSON хранит настройки. Скачайте аудио отдельно кнопками ниже и перенесите вместе с JSON; после импорта выберите эти файлы для восстановления связи.</p><div id="director-media" class="director-media-list"></div></details>
         </div><p id="director-status" class="director-status" role="status" aria-live="polite"></p><div class="director-actions"><button id="director-preview" type="button">Предпросмотр</button><button id="director-save" type="button" class="primary">Сохранить</button><button id="director-cancel" type="button">Отменить изменения</button></div>`;
       toolbar.appendChild(toggle); host.appendChild(panel);
       const byId = id => panel.querySelector('#director-' + id);
       const inputs = Object.fromEntries(['scene', 'duration', 'transition', 'phrase', 'text', 'speaker', 'start', 'typing', 'end', 'camera-start', 'camera-end', 'focus-x', 'focus-y', 'smoke', 'flicker', 'upload', 'upload-kind', 'library', 'import'].map(id => [id, byId(id)]));
-      const protectedButtons = ['scene-up', 'scene-down', 'phrase-add', 'phrase-remove', 'preview', 'save', 'cancel', 'track-add', 'export'].map(byId);
+      const protectedButtons = ['scene-up', 'scene-down', 'phrase-add', 'phrase-remove', 'preview', 'save', 'cancel', 'track-add', 'export', 'import-button'].map(byId);
       function guarded(action) { return event => { try { Promise.resolve(action(event)).catch(failure => say(failure.message, true)); } catch (failure) { say(failure.message, true); } }; }
+      const mixInputs = {};
+      for (const [kind, name] of Object.entries({ voice: 'Голос', music: 'Музыка', ambience: 'Атмосфера', effects: 'Эффекты' })) {
+        const label = document.createElement('label');
+        label.textContent = name;
+        const input = document.createElement('input');
+        Object.assign(input, { type: 'range', min: '0', max: '1', step: '0.01' });
+        label.appendChild(input);
+        byId('mix').appendChild(label);
+        mixInputs[kind] = input;
+        listen(input, 'input', guarded(() => setChannelVolume(kind, Number(input.value))));
+      }
+      listen(byId('import-button'), 'click', () => inputs.import.click());
       function optionsFor(select, values, selected) {
         select.replaceChildren();
         for (const [value, label] of values) {
@@ -498,6 +516,7 @@
         byId('phrase-fields').disabled = !phrase || saving;
         for (const [id, value] of Object.entries({ text: phrase?.text || '', speaker: phrase?.speaker || '', start: (phrase?.startMs || 0) / 1000, typing: (phrase?.typingMs || 0) / 1000, end: (phrase?.endMs || 0) / 1000 })) fieldValue(inputs[id], value);
         optionsFor(inputs.library, draft.media.map(item => [item.id, item.name]), inputs.library.value || draft.media[0]?.id);
+        for (const [kind, input] of Object.entries(mixInputs)) input.value = draft.volumes?.[kind] ?? baseline.audio.volumes[kind];
         trackRows(); mediaRows(); status();
       }
       function status() {
@@ -505,7 +524,7 @@
         const status = byId('status');
         if (status.textContent !== message) status.textContent = message;
         status.classList.toggle('is-error', error);
-        for (const input of Object.values(inputs)) input.disabled = saving;
+        for (const input of [...Object.values(inputs), ...Object.values(mixInputs)]) input.disabled = saving;
         for (const button of protectedButtons) button.disabled = saving;
         const index = draft.scenes.findIndex(item => item.id === selectedSceneId);
         byId('scene-up').disabled = saving || index === 0;
@@ -538,8 +557,8 @@
       listen(byId('preview'), 'click', guarded(preview));
       listen(byId('save'), 'click', guarded(save));
       listen(byId('cancel'), 'click', guarded(cancel));
-      listen(byId('export'), 'click', guarded(() => { download(new (window.Blob || Blob)([exportProject()], { type: 'application/json' }), 'pereulok-project.json'); say('JSON скачан. Аудиофайлы скачайте отдельно ниже.'); }));
-      listen(inputs.import, 'change', guarded(async () => { const file = inputs.import.files?.[0]; if (!file) return; await importFile(file); inputs.import.value = ''; }));
+      listen(byId('export'), 'click', guarded(() => { download(new (window.Blob || Blob)([exportProject()], { type: 'application/json' }), 'director-settings.json'); say('JSON скачан. Аудиофайлы скачайте отдельно ниже.'); }));
+      listen(inputs.import, 'change', guarded(async () => { const file = inputs.import.files?.[0]; if (!file) return; try { await importFile(file); } finally { inputs.import.value = ''; } }));
       fields();
     }
 
@@ -565,7 +584,7 @@
     await checkMissing();
     return {
       open, close, selectScene, reorder, updateScene: patchScene, setPhrase, addPhrase, removePhrase,
-      preview, save, cancel, importProject, importFile, exportProject, addAudio, relinkAudio, addTrack, updateTrack, removeTrack, downloadMedia,
+      preview, save, cancel, setChannelVolume, importProject, importFile, exportProject, addAudio, relinkAudio, addTrack, updateTrack, removeTrack, downloadMedia,
       getDraft, getSaved, getState,
       destroy() {
         if (destroyed) return;

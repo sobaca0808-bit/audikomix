@@ -67,7 +67,7 @@
     let serialized;
     try { serialized = JSON.stringify(input); } catch (_) { fail('Не удалось прочитать проект JSON.'); }
     if (!serialized || bytes(serialized) > LIMITS.jsonBytes) fail('Проект JSON превышает 1 МБ.');
-    record(input, ['format', 'version', 'title', 'scenes', 'media'], 'Проект');
+    record(input, ['format', 'version', 'title', 'scenes', 'media', 'volumes'], 'Проект');
     if (input.format !== 'alley-director' || input.version !== 1) fail('Формат или версия проекта не поддерживается.');
     if (!Array.isArray(input.scenes) || input.scenes.length !== source.length) fail('В проекте должны остаться все ' + source.length + ' существующих сцен.');
     if (!Array.isArray(input.media) || input.media.length > source.length * LIMITS.tracks) fail('Слишком много аудиофайлов в проекте.');
@@ -122,7 +122,13 @@
       });
       return { id: sceneId, durationMs, transitionMs: number(raw.transitionMs, 0, LIMITS.transitionMs, 'Переход', true), phrases, camera, effects, tracks };
     });
-    return { format: 'alley-director', version: 1, title: text(input.title, 120, 'Название проекта', false), scenes, media };
+    const volumes = input.volumes === undefined ? undefined : Object.fromEntries(
+      Object.entries(record(input.volumes, KINDS, 'Уровни каналов'))
+        .map(([kind, value]) => [kind, number(value, 0, 1, kind)])
+    );
+    return { format: 'alley-director', version: 1, title: text(input.title, 120, 'Название проекта', false),
+      scenes, media, ...(volumes && { volumes }) };
+
   }
 
   function fromStory(baseline) {
@@ -138,7 +144,7 @@
         camera: { start, end, focusX: match ? Number(match[1]) : 50, focusY: match ? Number(match[2]) : 50 },
         effects: { smoke: 0, flicker: 0 }, tracks: [] };
     });
-    return validate({ format: 'alley-director', version: 1, title: baseline.title || 'Переулок', scenes, media: [] }, baseline);
+    return validate({ format: 'alley-director', version: 1, title: baseline.title || 'Переулок', scenes, media: [], volumes: baseline.audio.volumes }, baseline);
   }
 
   function compile(input, baseline) {
@@ -198,7 +204,7 @@
       }
       return scene;
     });
-    return { ...clone(baseline), title: project.title, audio: clone(baseline.audio), scenes };
+    return { ...clone(baseline), title: project.title, audio: { ...clone(baseline.audio), volumes: { ...baseline.audio.volumes, ...project.volumes } }, scenes };
   }
 
   return { LIMITS, clone, fromStory, validate, compile, validateMedia: metadata };
