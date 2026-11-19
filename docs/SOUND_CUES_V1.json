@@ -1,0 +1,433 @@
+{
+  "version": 1,
+  "status": "blocked-missing-audio",
+  "runtimeConnected": false,
+  "sourceCommit": "3be684940a1ffebbbfff311dc45da6c8607d5b76",
+  "note": "Editorial cue sheet only. No source is enabled; no voice or synthetic replacement is included.",
+  "scenes": [
+    {
+      "number": 1,
+      "id": "alley",
+      "durationMs": 28550,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 28550,
+          "description": "Дождь по мостовой, водостоки, лужи",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 3569,
+          "endMs": 11896,
+          "description": "Редкие шаги и далёкий автомобиль эпохи",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 16654,
+          "endMs": 28550,
+          "description": "Джаз из-за дверей бара, нарастающий при приближении",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "id": "hero",
+      "durationMs": 18000,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 18000,
+          "description": "Джаз небольшого ансамбля, негромкие разговоры",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 18000,
+          "description": "Джаз небольшого ансамбля, негромкие разговоры",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 1000,
+          "endMs": 5000,
+          "description": "Звон бокалов, движение публики",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 13000,
+          "endMs": 18000,
+          "description": "Тихая пауза героя, музыка продолжает играть",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "id": "dasha",
+      "durationMs": 21400,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 21400,
+          "description": "Дождь и уличный фон, джаз глухо из бара",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 21400,
+          "description": "Дождь и уличный фон, джаз глухо из бара",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 1070,
+          "endMs": 5350,
+          "description": "Шелест пачки газет и быстрые шаги Даши",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 14980,
+          "endMs": 21400,
+          "description": "Смена удалённости: Даша приближается к двери",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "id": "revelation",
+      "durationMs": 42500,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 42500,
+          "description": "Фон бара с джазом и разговорами",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 42500,
+          "description": "Фон бара с джазом и разговорами",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 1181,
+          "endMs": 5903,
+          "description": "Открывание двери, мокрые быстрые шаги",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 8264,
+          "endMs": 12986,
+          "description": "Шелест и резкое разворачивание газеты",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 33056,
+          "endMs": 38958,
+          "description": "Герой переворачивает газету, слышен шорох бумаги",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "id": "panorama",
+      "durationMs": 24000,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 24000,
+          "description": "Тёплый джаз, лёгкий заловый гул",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 24000,
+          "description": "Тёплый джаз, лёгкий заловый гул",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 5000,
+          "endMs": 10000,
+          "description": "Шелест газетного листа",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 20000,
+          "endMs": 24000,
+          "description": "Постепенно усиливаются обрывки разговоров",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "id": "whispers",
+      "durationMs": 28700,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 28700,
+          "description": "Растущий гул шепотков, затем приглушение разговоров",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 22322,
+          "description": "Джаз плавно приглушается без изменения темпа",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 17007,
+          "endMs": 23385,
+          "description": "Звякнувший бокал; ткань по стеклу за стойкой",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 23385,
+          "endMs": 28700,
+          "description": "Короткое напряжённое затишье",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "id": "valentin",
+      "durationMs": 29150,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "effects",
+          "startMs": 0,
+          "endMs": 4319,
+          "description": "Открывание двери, порыв дождя с улицы",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 4319,
+          "endMs": 14035,
+          "description": "Уверенные шаги по полу бара, шорох одежды",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 29150,
+          "description": "Сдержанный фон зала, затихший джаз",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 29150,
+          "description": "Сдержанный фон зала, затихший джаз",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 22672,
+          "endMs": 26991,
+          "description": "Скрип барного табурета при посадке Валентина",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "id": "friends",
+      "durationMs": 76500,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 76500,
+          "description": "Очень тихий джаз и редкие фоновые голоса",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 76500,
+          "description": "Очень тихий джаз и редкие фоновые голоса",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 3531,
+          "endMs": 9415,
+          "description": "Тихий стук поставленного стакана, шелест газеты",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 20008,
+          "endMs": 34131,
+          "description": "Выдержанная пауза, чуть слышный зал",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 45900,
+          "endMs": 76500,
+          "description": "Пауза на взглядах друзей и кадре стойки; мягкое нарастание напряжения",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 45900,
+          "endMs": 76500,
+          "description": "Пауза на взглядах друзей и кадре стойки; мягкое нарастание напряжения",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "id": "intruders",
+      "durationMs": 33950,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "effects",
+          "startMs": 0,
+          "endMs": 3183,
+          "description": "Резкий удар распахнувшихся дверей",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 1061,
+          "endMs": 8488,
+          "description": "Порыв ветра, дождь с улицы",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "effects",
+          "startMs": 4244,
+          "endMs": 13792,
+          "description": "Тяжёлые шаги двоих вошедших, стук каблуков",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 0,
+          "endMs": 6366,
+          "description": "Обрыв джаза на полузвуке",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 13792,
+          "endMs": 33950,
+          "description": "Зал замолкает, затем едва слышный тревожный фон",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "id": "invitation",
+      "durationMs": 23000,
+      "voice": null,
+      "cues": [
+        {
+          "channel": "ambience",
+          "startMs": 0,
+          "endMs": 6000,
+          "description": "Напряжённая тишина зала, далёкий дождь",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "ambience",
+          "startMs": 16000,
+          "endMs": 20000,
+          "description": "Пауза без реплик; едва слышный остаточный шум дождя",
+          "status": "needs-recording",
+          "src": null
+        },
+        {
+          "channel": "music",
+          "startMs": 20000,
+          "endMs": 23000,
+          "description": "Короткая музыкальная точка на титре, затем тишина (если музыка будет найдена)",
+          "status": "needs-recording",
+          "src": null
+        }
+      ]
+    }
+  ]
+}
