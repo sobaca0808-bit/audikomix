@@ -72,13 +72,21 @@ test('preliminary timing has finite non-overlapping cues, readable typing and a 
   }
 });
 
-test('sound plan has relative voice/music/ambience/sfx windows and no actual sources', () => {
+test('sound plan has relative voice/music/ambience/sfx windows alongside local beds and effects', () => {
   const kinds = new Set();
-  assert.ok(Object.values(story.audio.beds).every(bed => bed.src === null));
+  assert.equal(story.audio.beds.rain.src, 'assets/audio/calpo_rain.ogg');
+  assert.ok(fs.existsSync(path.join(root, story.audio.beds.rain.src)));
+  assert.ok(Object.entries(story.audio.beds).filter(([id]) => !['rain', 'room', 'jazz'].includes(id)).every(([, bed]) => bed.src === null));
   for (const scene of story.scenes) {
     assert.equal(scene.audio.voice, null);
-    assert.equal(scene.audio.beds.length, 0);
-    assert.equal(scene.audio.effects.length, 0);
+    const bedIds = scene.audio.beds.map(bed => bed.id);
+    assert.deepEqual(bedIds, ['alley', 'dasha'].includes(scene.id) ? ['rain', 'jazz'] : scene.id === 'invitation' ? [] : ['room', 'jazz']);
+    for (const id of bedIds) assert.ok(fs.existsSync(path.join(root, story.audio.beds[id].src)));
+    for (const effect of scene.audio.effects) {
+      assert.ok(fs.existsSync(path.join(root, effect.src)));
+      assert.ok(effect.at >= 0 && effect.at < scene.duration);
+      assert.ok(effect.gain > 0 && effect.gain <= 1);
+    }
     assert.equal(scene.audioPlan.filter(cue => cue.kind === 'voice').length, scene.phrases.length);
     for (const cue of scene.audioPlan) {
       kinds.add(cue.kind);

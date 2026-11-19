@@ -660,3 +660,28 @@ test('a missing optional voice does not hide that another uploaded voice is read
   assert.equal(h.engine.play(uploaded,0),true);
   assert.equal(h.context.active.some(source=>source.buffer.label==='local voice'),true);
 });
+
+test('music automation retains its source across scenes and resumes at the current gain and offset', async () => {
+  const harness = audioHarness(available);
+  const opening = outside();
+  const whispers = { duration: 28000, audio: {
+    beds: [{ id: 'jazz', gain: .5, gainPoints: [{ at: 5000, gain: .5 }, { at: 22000, gain: .1 }] }]
+  } };
+  await harness.engine.prepare([opening, whispers]);
+  harness.engine.play(opening);
+  const source = harness.context.active.find(item => item.buffer.label.includes('jazz'));
+  harness.engine.play(whispers, 0, { crossfade: true });
+  assert.deepEqual(harness.context.active.filter(item => item.buffer.label.includes('jazz')), [source]);
+  harness.context.advance(13.5);
+  harness.engine.tick(13500);
+  near(source.connections[0].gain.value, .3);
+  harness.engine.pause();
+  harness.engine.play(whispers, 13500);
+  const resumed = harness.context.active.find(item => item.buffer.label.includes('jazz'));
+  near(resumed.offset, 13.5);
+  near(resumed.connections[0].gain.value, .3);
+  harness.context.advance(8.5);
+  near(resumed.connections[0].gain.value, .1);
+  harness.engine.setMuted(true);
+  near(harness.engine.getMasterState().effectiveVolume, 0);
+});

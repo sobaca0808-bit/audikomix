@@ -173,8 +173,10 @@
       }
       scene.audio = scene.audio || { voice: null, beds: [], effects: [] };
       if (settings.tracks.length) {
-        scene.audio.tracks = settings.tracks.map(track => ({ id: track.id, src: 'director-media:' + track.assetId,
-          kind: track.kind, start: track.startMs, gain: track.volume, loop: track.loop }));
+        scene.audio.tracks = [...(scene.audio.tracks || []), ...settings.tracks.map(track => ({
+          id: track.id, src: 'director-media:' + track.assetId,
+          kind: track.kind, start: track.startMs, gain: track.volume, loop: track.loop
+        }))];
         if (settings.tracks.some(track => track.kind === 'voice')) {
           scene.audio.voice = null;
           scene.duration = Math.max(scene.duration, ...settings.tracks.filter(track => track.kind === 'voice')
