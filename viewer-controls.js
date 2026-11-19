@@ -31,6 +31,8 @@
     const status = element('viewer-status');
     if (!player || !mute || !volume || !subtitle || !fullscreen) throw new TypeError('Viewer controls markup is incomplete');
 
+    const cinemaFullscreen = (options.window || root).AlleyCinemaFullscreen?.create({ window: options.window || root, document, player, status });
+
     let subtitleSize = 100;
     let fallback = false;
     let pending = null;
@@ -102,6 +104,7 @@
     function syncFullscreen() {
       const native = nativeActive();
       const active = native || fallback;
+      cinemaFullscreen?.update(active);
       const label = native ? 'Выйти из полного экрана' : fallback ? 'Свернуть плеер' : 'На весь экран';
       const caption = native ? 'Выйти' : fallback ? 'Свернуть' : 'Полный экран';
       fullscreen.disabled = Boolean(pending);
@@ -253,6 +256,7 @@
       sync,
       destroy() {
         if (destroyed) return;
+        cinemaFullscreen?.destroy();
         destroyed = true;
         serial += 1;
         wanted = false;
